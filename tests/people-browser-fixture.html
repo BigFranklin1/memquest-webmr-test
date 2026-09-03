@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>People responsive QA</title></head>
+<body style="margin:0;background:#0a1426;overflow:hidden">
+  <iframe id="people-frame" title="People responsive preview" style="display:block;border:0;transform-origin:top left"></iframe>
+  <output id="layout-measurements" style="position:fixed;right:4px;bottom:4px;max-width:320px;color:#93a1b9;font:10px monospace;white-space:pre-wrap"></output>
+  <script type="module">
+    const params = new URLSearchParams(location.search);
+    const width = Number(params.get('width')) || 1722;
+    const height = Number(params.get('height')) || 1508;
+    const frame = document.getElementById('people-frame');
+    frame.width = width;
+    frame.height = height;
+    frame.src = `/tests/people-render-fixture.html?${params.toString()}`;
+    addEventListener('message', (event) => { if (event.origin === location.origin && event.source === frame.contentWindow && event.data.type === 'people-layout') document.getElementById('layout-measurements').textContent = JSON.stringify(event.data.metrics); });
+    const fit = () => { const scale = Math.min(innerWidth / width, innerHeight / height, 1); frame.style.transform = `scale(${scale})`; document.body.dataset.scale = scale; };
+    addEventListener('resize', fit);
+    fit();
+  </script>
+</body>
+</html>

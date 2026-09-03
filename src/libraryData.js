@@ -1,0 +1,86 @@
+export const LIBRARY_ERAS = Object.freeze([
+  {
+    id: "american-revolution",
+    title: "American Revolution",
+    dates: "1765 - 1783",
+    status: "active",
+    description: "Trace the protests, people, and evidence that transformed thirteen colonies into a new nation.",
+  },
+  {
+    id: "ancient-china",
+    title: "Ancient China",
+    dates: "2070 BC - 220 AD",
+    status: "preview",
+  },
+  {
+    id: "silk-road",
+    title: "Silk Road Civilizations",
+    dates: "130 BC - 1453 AD",
+    status: "preview",
+  },
+  {
+    id: "world-war-ii",
+    title: "World War II",
+    dates: "1939 - 1945",
+    status: "preview",
+  },
+]);
+
+export const HARBOR_CLUES = Object.freeze([
+  {
+    id: "lantern",
+    eyebrow: "Night operation",
+    title: "A Lantern in the Fog",
+    shortLabel: "Lantern",
+    period: "December 16, 1773",
+    location: "Griffin’s Wharf",
+    body: "After sunset, a hooded lantern gave the participants just enough light to work along Griffin’s Wharf while keeping the wider dock in darkness.",
+    archiveNote: "Limited light helped the group work quickly without turning the wharf into a spectacle.",
+    whyItMatters: "The Tea Party was an organized night operation, not a spontaneous daytime riot. Limited light helped participants move quickly while reducing the chance that the crowded waterfront would reveal every face and action.",
+    relatedHistory: "The meeting at Old South Meeting House ended near sunset. Soon afterward, groups moved toward the wharf and cleared the tea from three ships before the night was over.",
+  },
+  {
+    id: "tea-chest",
+    eyebrow: "Cargo evidence",
+    title: "East India Company Tea",
+    shortLabel: "Tea chest",
+    period: "Tea Act cargo, 1773",
+    location: "Dartmouth’s hold",
+    body: "This chest represents taxed East India Company tea. The men split open the cargo and emptied it into the harbor while taking care not to damage the ships or unrelated goods.",
+    archiveNote: "The tea, not the vessels, was the carefully chosen target of the protest.",
+    whyItMatters: "Destroying the tea made Parliament’s tax policy visible. By attacking the cargo while protecting the vessels and other goods, the participants framed the action as a focused political protest rather than general looting.",
+    relatedHistory: "Contemporary reports counted 342 chests destroyed across the Dartmouth, Eleanor, and Beaver. The loss belonged to the East India Company, which had received special advantages under the Tea Act.",
+  },
+  {
+    id: "ship",
+    eyebrow: "Harbor record",
+    title: "The Dartmouth at Griffin’s Wharf",
+    shortLabel: "Tea ship",
+    period: "Arrived November 28, 1773",
+    location: "Boston Harbor",
+    body: "The Dartmouth reached Boston on November 28, 1773 with 114 chests of East India Company tea. Its customs deadline helped turn a political dispute into an urgent confrontation.",
+    archiveNote: "The Dartmouth was one of three vessels whose tea cargo was destroyed that night.",
+    whyItMatters: "The ship’s customs deadline forced a decision. If the tea was not cleared and unloaded, customs officials could seize it; if it landed, the disputed tax would be paid. The Dartmouth became the clock driving the confrontation.",
+    relatedHistory: "The Eleanor and Beaver later joined the Dartmouth at Griffin’s Wharf. After officials refused permission for the tea ships to leave, all three cargoes were targeted on December 16.",
+  },
+  {
+    id: "hatchet",
+    eyebrow: "Action tool",
+    title: "A Ship Carpenter’s Hatchet",
+    shortLabel: "Hatchet",
+    period: "Night action, 1773",
+    location: "Tea ship decks",
+    body: "Eyewitness John Andrews described participants carrying hatchets or axes. Tools like this were used to knock the tea chests apart before the leaves were thrown overboard.",
+    archiveNote: "Breaking the chests made the destruction of the tea swift, deliberate, and unmistakable.",
+    whyItMatters: "The hatchet turned protest into an irreversible act. Breaking every chest ensured the tea could not be recovered and sold, while the selective use of the tool kept the action focused on the taxed cargo.",
+    relatedHistory: "John Andrews wrote the next day that the chests were knocked to pieces and thrown overboard. The Boston Gazette likewise emphasized that the ships and other property were left unharmed.",
+  },
+]);
+
+export const REVOLUTION_SECTIONS = Object.freeze([
+  { id: "explore", label: "Explore" },
+  { id: "timeline", label: "Timeline" },
+  { id: "people", label: "People" },
+  { id: "evidence", label: "Evidence" },
+  { id: "memory", label: "Memory Check" },
+]);

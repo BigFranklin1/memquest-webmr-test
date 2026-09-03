@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MemQuest OCR browser fixture</title>
+  </head>
+  <body>
+    <canvas id="printed-page" width="1280" height="420"></canvas>
+    <pre id="result" role="status">loading</pre>
+    <script type="module">
+      window.__OCR_QA_RESULT__ = { status: "loading" };
+      const output = document.querySelector("#result");
+      const publish = (result) => {
+        window.__OCR_QA_RESULT__ = result;
+        output.textContent = JSON.stringify(result);
+      };
+      const canvas = document.querySelector("#printed-page");
+      const context = canvas.getContext("2d");
+      context.fillStyle = "#fff";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = "#000";
+      context.font = "bold 84px Arial";
+      context.fillText("BOSTON TEA PARTY 1773", 48, 135);
+      context.font = "56px Arial";
+      context.fillText("Tea chests from the East India Company", 48, 245);
+      context.fillText("were thrown into Boston Harbor.", 48, 335);
+
+      let recognizer;
+      try {
+        const [{ createLocalEnglishRecognizer }, { matchHistoricalEvent }] = await Promise.all([
+          import("../src/ocrRuntime.js"),
+          import("../src/scanMatcher.js"),
+        ]);
+        recognizer = await createLocalEnglishRecognizer();
+        const result = await recognizer.recognize(canvas);
+        publish({
+          status: "complete",
+          text: result.text.replace(/\s+/g, " ").trim(),
+          ocrConfidence: Math.round(result.confidence),
+          match: matchHistoricalEvent(result.text),
+        });
+      } catch (error) {
+        publish({ status: "error", message: error.message });
+      } finally {
+        await recognizer?.terminate();
+      }
+    </script>
+  </body>
+</html>

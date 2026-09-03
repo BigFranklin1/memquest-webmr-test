@@ -1,0 +1,530 @@
+import { useEffect, useRef, useState } from "react";
+import {
+  ArrowLeft,
+  ArrowsLeftRight,
+  ChatCircleDots,
+  Check,
+  ClockCounterClockwise,
+  FileText,
+  Microphone,
+  Scan,
+  ShieldCheck,
+  SpeakerHigh,
+  SpinnerGap,
+  TextAa,
+  UserFocus,
+  Waveform,
+  WarningCircle,
+} from "@phosphor-icons/react";
+import samuelAdamsPortrait from "./assets/samuel-adams-ar.webp";
+import stampActImage from "./assets/timeline/stamp-act-1765.webp";
+import bostonMassacreImage from "./assets/timeline/boston-massacre-1770.webp";
+import bostonTeaPartyImage from "./assets/timeline/boston-tea-party-1773.webp";
+import continentalCongressImage from "./assets/timeline/continental-congress-1774.webp";
+import dialogueAllianceVoice from "./assets/voice/dialogue-alliance.wav";
+import dialogueIdentityVoice from "./assets/voice/dialogue-identity.wav";
+import dialogueMotiveVoice from "./assets/voice/dialogue-motive.wav";
+import bostonMassacreVoice from "./assets/voice/event-boston-massacre.wav";
+import bostonTeaPartyVoice from "./assets/voice/event-boston-tea-party.wav";
+import continentalCongressVoice from "./assets/voice/event-continental-congress.wav";
+import stampActVoice from "./assets/voice/event-stamp-act.wav";
+import samuelAdamsIntroductionVoice from "./assets/voice/samuel-adams-introduction.wav";
+import { DIALOGUE_PROMPTS, SAMUEL_ADAMS, SCAN_EVENT_PRESETS, TIMELINE_EVENTS } from "./scanData.js";
+import { createOcrScanner } from "./ocrScanner.js";
+import { OCR_STATUSES, SCAN_STAGES } from "./scanState.js";
+
+const TIMELINE_IMAGES = Object.freeze({
+  "stamp-act": stampActImage,
+  massacre: bostonMassacreImage,
+  "tea-party": bostonTeaPartyImage,
+  congress: continentalCongressImage,
+});
+
+const DIALOGUE_VOICES = Object.freeze({
+  identity: dialogueIdentityVoice,
+  motive: dialogueMotiveVoice,
+  alliance: dialogueAllianceVoice,
+});
+
+const TIMELINE_VOICES = Object.freeze({
+  "stamp-act": stampActVoice,
+  massacre: bostonMassacreVoice,
+  "tea-party": bostonTeaPartyVoice,
+  congress: continentalCongressVoice,
+});
+
+function BackButton({ onClick, label = "Back to profile" }) {
+  return (
+    <button type="button" className="scan-back" onClick={onClick}>
+      <ArrowLeft size={19} weight="bold" />
+      <span>{label}</span>
+    </button>
+  );
+}
+
+const OCR_STATUS_COPY = Object.freeze({
+  [OCR_STATUSES.LOADING]: {
+    kicker: "Preparing local recognition",
+    title: "Loading the English archive lens…",
+    description: "The OCR model runs on this device. Camera frames are never uploaded.",
+  },
+  [OCR_STATUSES.STABILIZING]: {
+    kicker: "Archive lens active",
+    title: "Hold the printed text steady",
+    description: "Place an English title, year, or historical passage inside the frame.",
+  },
+  [OCR_STATUSES.RECOGNIZING]: {
+    kicker: "Reading the page",
+    title: "Matching historical context…",
+    description: "Comparing visible text with four American Revolution event records.",
+  },
+});
+
+function ScanningView({ scanState, cameraReady }) {
+  const copy = cameraReady
+    ? OCR_STATUS_COPY[scanState.ocrStatus] ?? OCR_STATUS_COPY[OCR_STATUSES.LOADING]
+    : {
+      kicker: "Camera permission required",
+      title: "Opening the archive lens…",
+      description: "Allow access to your rear camera, then point it at printed English text.",
+    };
+  const progress = Math.round((scanState.ocrProgress || 0) * 100);
+
+  return (
+    <section className="scanning-view ocr-scanning-view" aria-labelledby="scanning-title">
+      <div className={`ocr-capture-frame ${scanState.ocrStatus === OCR_STATUSES.RECOGNIZING ? "is-recognizing" : ""}`} aria-hidden="true">
+        <span className="ocr-frame-label"><TextAa size={18} weight="duotone" /> English printed text</span>
+        <Scan size={70} weight="duotone" />
+        <span className="ocr-frame-hint">Keep the title and year inside this frame</span>
+      </div>
+      <div className="ocr-scan-copy">
+        <p className="scan-kicker">{copy.kicker}</p>
+        <h1 id="scanning-title">{copy.title}</h1>
+        <p>{copy.description}</p>
+        <div className="ocr-progress" aria-label={`Text recognition ${progress}%`}>
+          <span style={{ width: `${progress}%` }} />
+        </div>
+        <div className="ocr-scan-meta">
+          <span><ShieldCheck size={17} weight="duotone" /> Processed on device</span>
+          <span><SpinnerGap className={scanState.ocrStatus === OCR_STATUSES.RECOGNIZING ? "is-spinning" : ""} size={17} /> Pass {Math.min(3, scanState.attemptCount + 1)} of 3</span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function EventResultView({ scanState, onProfile, onTimeline, onRescan, onSpeak, speaking }) {
+  const matchedEvent = TIMELINE_EVENTS.find((event) => event.id === scanState.matchedEventId) ?? TIMELINE_EVENTS[0];
+  const image = TIMELINE_IMAGES[matchedEvent.id];
+
+  return (
+    <section className="ocr-result-layout" aria-labelledby="ocr-result-title">
+      <figure className="ocr-result-image">
+        <img src={image} alt={matchedEvent.imageAlt} />
+        <figcaption><Check size={18} weight="bold" /> Historical event matched</figcaption>
+      </figure>
+      <article className="ocr-result-card">
+        <div className="ocr-result-heading">
+          <span><FileText size={26} weight="duotone" /></span>
+          <div><p className="scan-kicker">Archive record acquired</p><strong>{scanState.matchConfidence}% match</strong></div>
+        </div>
+        <p className="ocr-result-year">{matchedEvent.year} · {matchedEvent.date}</p>
+        <h1 id="ocr-result-title">{matchedEvent.title}</h1>
+        <p className="ocr-result-summary">{matchedEvent.cardIntro}</p>
+        <blockquote>
+          <small>TEXT SEEN IN CAMERA</small>
+          <p>{scanState.recognizedTextExcerpt || "A matching historical phrase was recognized in the camera frame."}</p>
+        </blockquote>
+        <div className="ocr-result-actions">
+          <button type="button" className="scan-primary" onClick={() => onSpeak(TIMELINE_VOICES[matchedEvent.id])}>
+            {speaking ? <Waveform size={19} weight="bold" /> : <SpeakerHigh size={19} weight="duotone" />}
+            {speaking ? "Playing story…" : "Listen to the story"}
+          </button>
+          <button type="button" className="scan-secondary" onClick={onTimeline}><ClockCounterClockwise size={19} weight="duotone" /> Explore timeline</button>
+          <button type="button" className="scan-secondary" onClick={onProfile}><UserFocus size={19} weight="duotone" /> Meet Samuel Adams</button>
+          <button type="button" className="scan-quiet" onClick={onRescan}><Scan size={19} weight="duotone" /> Scan again</button>
+        </div>
+      </article>
+    </section>
+  );
+}
+
+function UnmatchedView({ scanState, onRetry, onTimeline }) {
+  const recognitionFailed = scanState.ocrStatus === OCR_STATUSES.ERROR;
+  return (
+    <section className="ocr-unmatched-view" aria-labelledby="ocr-unmatched-title">
+      <span className="ocr-unmatched-icon"><WarningCircle size={54} weight="duotone" /></span>
+      <p className="scan-kicker">{recognitionFailed ? "Recognition unavailable" : "No preset match"}</p>
+      <h1 id="ocr-unmatched-title">{recognitionFailed ? "Text recognition unavailable" : "No historical match found"}</h1>
+      <p>{recognitionFailed
+        ? "The on-device OCR worker could not load. Keep the page open and try again."
+        : "The text was read, but it did not match an event currently available in this prototype."}</p>
+      {!recognitionFailed && scanState.recognizedTextExcerpt && (
+        <blockquote><small>TEXT SEEN IN CAMERA</small><p>{scanState.recognizedTextExcerpt}</p></blockquote>
+      )}
+      <div className="ocr-supported-events" aria-label="Currently supported historical events">
+        {SCAN_EVENT_PRESETS.map((preset) => <span key={preset.eventId}><strong>{preset.year}</strong>{preset.title}</span>)}
+      </div>
+      <div className="ocr-unmatched-actions">
+        <button type="button" className="scan-primary" onClick={onRetry}><Scan size={19} weight="duotone" /> Try again</button>
+        <button type="button" className="scan-secondary" onClick={onTimeline}><ClockCounterClockwise size={19} weight="duotone" /> View supported timeline</button>
+      </div>
+    </section>
+  );
+}
+
+function ProfileView({ matchedEvent, onDialogue, onTimeline, onRescan, onSpeak, speaking }) {
+  return (
+    <section className="profile-layout" aria-labelledby="subject-name">
+      <figure className="character-stage">
+        <div className="subject-lock"><UserFocus size={18} weight="duotone" /> Subject acquired</div>
+        <img src={samuelAdamsPortrait} alt="Generated full-body archival portrait of Samuel Adams" />
+        <figcaption>{matchedEvent ? `Linked through ${matchedEvent.title} · ${matchedEvent.year}` : SAMUEL_ADAMS.scanContext}</figcaption>
+      </figure>
+
+      <article className="subject-card">
+        <div className="subject-card-icon" aria-hidden="true"><UserFocus size={27} weight="duotone" /></div>
+        <p className="scan-kicker">Historical echo detected</p>
+        <h1 id="subject-name">{SAMUEL_ADAMS.name}</h1>
+        <p className="subject-meta">{SAMUEL_ADAMS.lifespan} · {SAMUEL_ADAMS.role}</p>
+        <p className="subject-summary">{SAMUEL_ADAMS.summary}</p>
+        <div className="subject-actions">
+          <button type="button" className="scan-primary" onClick={onDialogue}>
+            <ChatCircleDots size={20} weight="duotone" /> Talk to Samuel
+          </button>
+          <button type="button" className="scan-secondary" onClick={onTimeline}>
+            <ClockCounterClockwise size={20} weight="duotone" /> Explore timeline
+          </button>
+          <button type="button" className="scan-secondary" onClick={() => onSpeak(samuelAdamsIntroductionVoice)}>
+            {speaking ? <Waveform size={20} weight="bold" /> : <SpeakerHigh size={20} weight="duotone" />}
+            {speaking ? "Speaking…" : "Hear introduction"}
+          </button>
+          <button type="button" className="scan-quiet" onClick={onRescan}>
+            <Scan size={19} weight="duotone" /> Scan again
+          </button>
+        </div>
+      </article>
+    </section>
+  );
+}
+
+function DialogueView({ selectedPromptId, onSelectPrompt, onBack, onTimeline, onSpeak, speaking }) {
+  const selectedPrompt = DIALOGUE_PROMPTS.find((prompt) => prompt.id === selectedPromptId) ?? null;
+
+  const askQuestion = (prompt) => {
+    onSelectPrompt(prompt.id);
+    onSpeak(DIALOGUE_VOICES[prompt.id]);
+  };
+
+  return (
+    <section className="dialogue-layout" aria-labelledby="dialogue-title">
+      <div className="dialogue-character">
+        <BackButton onClick={onBack} />
+        <img src={samuelAdamsPortrait} alt="Samuel Adams archival projection" />
+        <div className="voice-ready"><span /> HeyGen character voice ready</div>
+      </div>
+
+      <div className="dialogue-panel">
+        <p className="scan-kicker">Subject acquired · 1773</p>
+        <h1 id="dialogue-title">Speak with Samuel Adams</h1>
+        <p className="dialogue-help">Tap a question to hear the character answer through your device speaker.</p>
+
+        <div className={`transcript-card ${selectedPrompt ? "has-answer" : ""}`} aria-live="polite">
+          <div className="transcript-icon" aria-hidden="true">
+            {speaking ? <Waveform size={24} weight="bold" /> : <ChatCircleDots size={24} weight="duotone" />}
+          </div>
+          <div>
+            <span>{speaking ? "Samuel is speaking" : selectedPrompt ? selectedPrompt.label : "Choose a question"}</span>
+            <p>{selectedPrompt?.answer ?? "A short transcript will appear here while the spoken response plays."}</p>
+          </div>
+        </div>
+
+        <div className="question-grid">
+          {DIALOGUE_PROMPTS.map((prompt) => (
+            <button
+              type="button"
+              key={prompt.id}
+              className={selectedPromptId === prompt.id ? "is-selected" : ""}
+              onClick={() => askQuestion(prompt)}
+            >
+              <Microphone size={20} weight="duotone" />
+              <span><small>{prompt.category}</small>{prompt.label}</span>
+            </button>
+          ))}
+        </div>
+
+        <button type="button" className="timeline-link" onClick={onTimeline}>
+          <ClockCounterClockwise size={19} weight="duotone" /> Connect these answers to the timeline
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function TimelineView({ selectedEventId, onSelectEvent, onBack, onSpeak, speaking }) {
+  const selectedEvent = TIMELINE_EVENTS.find((event) => event.id === selectedEventId) ?? TIMELINE_EVENTS[2];
+  const carouselRef = useRef(null);
+  const scrollFrameRef = useRef(null);
+
+  useEffect(() => () => {
+    if (scrollFrameRef.current) window.cancelAnimationFrame(scrollFrameRef.current);
+  }, []);
+
+  useEffect(() => {
+    const initialFrame = window.requestAnimationFrame(() => {
+      const selectedCard = carouselRef.current?.querySelector(`[data-event-id="${selectedEvent.id}"]`);
+      selectedCard?.scrollIntoView({ behavior: "auto", block: "nearest", inline: "center" });
+    });
+    return () => window.cancelAnimationFrame(initialFrame);
+  }, []);
+
+  const syncNearestCard = () => {
+    if (scrollFrameRef.current) return;
+    scrollFrameRef.current = window.requestAnimationFrame(() => {
+      scrollFrameRef.current = null;
+      const carousel = carouselRef.current;
+      if (!carousel) return;
+      const carouselCenter = carousel.getBoundingClientRect().left + (carousel.clientWidth / 2);
+      const cards = [...carousel.querySelectorAll("[data-event-id]")];
+      const nearest = cards.reduce((closest, card) => {
+        const rect = card.getBoundingClientRect();
+        const distance = Math.abs(rect.left + (rect.width / 2) - carouselCenter);
+        return !closest || distance < closest.distance ? { card, distance } : closest;
+      }, null);
+      const nearestId = nearest?.card.dataset.eventId;
+      if (nearestId && nearestId !== selectedEvent.id) onSelectEvent(nearestId);
+    });
+  };
+
+  const selectCard = (eventId, card) => {
+    onSelectEvent(eventId);
+    card.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+      block: "nearest",
+      inline: "center",
+    });
+  };
+
+  return (
+    <section className="timeline-layout" aria-labelledby="timeline-title">
+      <div className="timeline-heading">
+        <BackButton onClick={onBack} />
+        <div>
+          <p className="scan-kicker">AR history · American Revolution</p>
+          <h1 id="timeline-title">Connect the causes</h1>
+        </div>
+        <div className="timeline-subject-chip">
+          <img src={samuelAdamsPortrait} alt="" aria-hidden="true" />
+          <span>Samuel Adams<br /><small>Context guide</small></span>
+        </div>
+      </div>
+
+      <div className="timeline-carousel-label">
+        <span>Key moments in the road to revolution</span>
+        <small><ArrowsLeftRight size={16} weight="bold" /> Swipe timeline</small>
+      </div>
+
+      <div
+        ref={carouselRef}
+        className="timeline-events"
+        role="list"
+        aria-label="Key historical events. Swipe horizontally to explore."
+        onScroll={syncNearestCard}
+      >
+        {TIMELINE_EVENTS.map((event) => (
+          <article className="timeline-event-card" role="listitem" key={event.id}>
+            <button
+              type="button"
+              data-event-id={event.id}
+              className={event.id === selectedEvent.id ? "is-selected" : ""}
+              aria-pressed={event.id === selectedEvent.id}
+              onClick={(clickEvent) => selectCard(event.id, clickEvent.currentTarget)}
+            >
+              <div className="timeline-event-image">
+                <img src={TIMELINE_IMAGES[event.id]} alt={event.imageAlt} />
+                <strong>{event.year}</strong>
+                {event.id === selectedEvent.id && <Check className="event-check" size={17} weight="bold" />}
+              </div>
+              <div className="timeline-event-copy">
+                <div className="timeline-event-meta"><span>{event.date}</span><small>{event.shortTitle}</small></div>
+                <h2>{event.title}</h2>
+                <p>{event.cardIntro}</p>
+              </div>
+            </button>
+          </article>
+        ))}
+      </div>
+
+      <article className="timeline-detail" aria-live="polite">
+        <div className="timeline-date"><strong>{selectedEvent.year}</strong><span>{selectedEvent.date}</span></div>
+        <div>
+          <h2>{selectedEvent.title}</h2>
+          <p>{selectedEvent.detail}</p>
+        </div>
+        <button type="button" className="scan-secondary" onClick={() => onSpeak(TIMELINE_VOICES[selectedEvent.id])}>
+          {speaking ? <Waveform size={20} weight="bold" /> : <SpeakerHigh size={20} weight="duotone" />}
+          {speaking ? "Speaking…" : "Hear event"}
+        </button>
+      </article>
+    </section>
+  );
+}
+
+export function ScanExperience({
+  scanState,
+  dispatchScan,
+  experience,
+  onRetryCamera,
+  onMatchedEvent,
+  videoElement,
+}) {
+  const scannerRef = useRef(null);
+  const audioRef = useRef(null);
+  const [speaking, setSpeaking] = useState(false);
+
+  useEffect(() => {
+    if (scanState.stage !== SCAN_STAGES.SCANNING || experience.mode !== "camera" || !videoElement) return undefined;
+
+    const scanner = createOcrScanner({
+      videoElement,
+      onProgress: (progress) => dispatchScan({ type: "OCR_PROGRESS", ...progress }),
+      onMatch: onMatchedEvent,
+      onNoMatch: (result) => dispatchScan({ type: "NO_MATCH", ...result }),
+      onError: () => dispatchScan({ type: "OCR_ERROR" }),
+    });
+    scannerRef.current = scanner;
+    scanner.start();
+    return () => {
+      if (scannerRef.current === scanner) scannerRef.current = null;
+      scanner.stop();
+    };
+  }, [dispatchScan, experience.mode, onMatchedEvent, scanState.stage, videoElement]);
+
+  useEffect(() => () => {
+    const audio = audioRef.current;
+    audioRef.current = null;
+    if (!audio) return;
+    audio.onplay = null;
+    audio.onended = null;
+    audio.onerror = null;
+    audio.pause();
+    audio.src = "";
+  }, []);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audioRef.current = null;
+    audio.onplay = null;
+    audio.onended = null;
+    audio.onerror = null;
+    audio.pause();
+    audio.src = "";
+    setSpeaking(false);
+  }, [scanState.stage]);
+
+  const speak = (source) => {
+    const previousAudio = audioRef.current;
+    audioRef.current = null;
+    if (previousAudio) {
+      previousAudio.onplay = null;
+      previousAudio.onended = null;
+      previousAudio.onerror = null;
+      previousAudio.pause();
+      previousAudio.src = "";
+    }
+    const audio = new window.Audio(source);
+    audio.preload = "auto";
+    audio.onplay = () => {
+      if (audioRef.current === audio) setSpeaking(true);
+    };
+    audio.onended = () => {
+      if (audioRef.current === audio) setSpeaking(false);
+    };
+    audio.onerror = () => {
+      if (audioRef.current === audio) setSpeaking(false);
+    };
+    audioRef.current = audio;
+    audio.play().catch(() => {
+      if (audioRef.current === audio) setSpeaking(false);
+    });
+  };
+
+  const hasCameraError = ["denied", "unsupported", "error"].includes(experience.mode);
+  const matchedEvent = TIMELINE_EVENTS.find((event) => event.id === scanState.matchedEventId) ?? null;
+
+  if (hasCameraError) {
+    return (
+      <section className="scan-error" role="alert">
+        <Scan size={54} weight="duotone" />
+        <p className="scan-kicker">Camera unavailable</p>
+        <h1>Scan could not start</h1>
+        <p>{experience.message}</p>
+        <button type="button" className="scan-primary" onClick={onRetryCamera}>Try camera again</button>
+      </section>
+    );
+  }
+
+  if (scanState.stage === SCAN_STAGES.PROFILE) {
+    return (
+      <ProfileView
+        matchedEvent={matchedEvent}
+        onDialogue={() => dispatchScan({ type: "OPEN_DIALOGUE" })}
+        onTimeline={() => dispatchScan({ type: "OPEN_TIMELINE" })}
+        onRescan={onRetryCamera}
+        onSpeak={speak}
+        speaking={speaking}
+      />
+    );
+  }
+
+  if (scanState.stage === SCAN_STAGES.RESULT) {
+    return (
+      <EventResultView
+        scanState={scanState}
+        onProfile={() => dispatchScan({ type: "OPEN_PROFILE" })}
+        onTimeline={() => dispatchScan({ type: "OPEN_TIMELINE" })}
+        onRescan={onRetryCamera}
+        onSpeak={speak}
+        speaking={speaking}
+      />
+    );
+  }
+
+  if (scanState.stage === SCAN_STAGES.UNMATCHED) {
+    return (
+      <UnmatchedView
+        scanState={scanState}
+        onRetry={onRetryCamera}
+        onTimeline={() => dispatchScan({ type: "OPEN_TIMELINE" })}
+      />
+    );
+  }
+
+  if (scanState.stage === SCAN_STAGES.DIALOGUE) {
+    return (
+      <DialogueView
+        selectedPromptId={scanState.selectedPromptId}
+        onSelectPrompt={(promptId) => dispatchScan({ type: "SELECT_PROMPT", promptId })}
+        onBack={() => dispatchScan({ type: "OPEN_PROFILE" })}
+        onTimeline={() => dispatchScan({ type: "OPEN_TIMELINE" })}
+        onSpeak={speak}
+        speaking={speaking}
+      />
+    );
+  }
+
+  if (scanState.stage === SCAN_STAGES.TIMELINE) {
+    return (
+      <TimelineView
+        selectedEventId={scanState.selectedEventId}
+        onSelectEvent={(eventId) => dispatchScan({ type: "SELECT_EVENT", eventId })}
+        onBack={() => dispatchScan({ type: "OPEN_PROFILE" })}
+        onSpeak={speak}
+        speaking={speaking}
+      />
+    );
+  }
+
+  return <ScanningView scanState={scanState} cameraReady={experience.mode === "camera"} />;
+}

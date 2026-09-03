@@ -1,0 +1,15 @@
+.vercel
+.env*
+
+# Dependencies and local caches
+node_modules/
+.pnpm-store/
+
+# Generated output and local QA captures
+dist/
+qa-*.png
+*.log
+
+# OS metadata
+.DS_Store
+Thumbs.db
