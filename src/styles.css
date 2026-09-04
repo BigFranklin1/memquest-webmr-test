@@ -2451,8 +2451,8 @@ button {
 .harbor-vignette {
   pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(3, 8, 18, 0.2), transparent 22%, transparent 69%, rgba(3, 8, 18, 0.46)),
-    radial-gradient(circle at center, transparent 42%, rgba(2, 6, 14, 0.34) 100%);
+    linear-gradient(180deg, rgba(3, 8, 18, 0.13), transparent 24%, transparent 73%, rgba(3, 8, 18, 0.34)),
+    radial-gradient(circle at 54% 46%, transparent 52%, rgba(2, 6, 14, 0.28) 100%);
 }
 
 .harbor-topbar {

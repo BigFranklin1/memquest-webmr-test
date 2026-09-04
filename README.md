@@ -7,12 +7,15 @@ MemQuest 是一个面向手机浏览器的历史学习原型，使用 React、Vi
 - 生产站点：[打开 MemQuest](https://webxr-test-one.vercel.app/)
 - 本地预览：[http://localhost:4173/](http://localhost:4173/)
 - 设计与验证记录：[design-qa.md](./design-qa.md)
+- 零基础交接与作品集指南：[MemQuest 新手交接指南](./docs/HANDOFF.zh-CN.md)（含 Git、环境、Codex、功能地图、截图、部署与作品集模板）
+
+> 首次接手建议先阅读交接指南的第 1–5 节。正式交付前需核对本地、GitHub 与 Vercel 版本；保存代码不等于已推送或已上线。
 
 ## 一、快速运行
 
 ### 环境要求
 
-- Node.js 20 或更高版本；当前开发环境使用 Node.js 24。
+- 推荐 Node.js 24.x，与当前已验证的本地和 Vercel 主版本一致。
 - Windows PowerShell 5.1 或更高版本，可使用项目内的 PowerShell 启动器。
 - Scan 需要带摄像头的浏览器。
 - 手机上的摄像头、设备方向与 WebXR 能力需要在支持相关功能的浏览器和安全上下文中使用；真机测试请使用 HTTPS 地址。
@@ -109,7 +112,8 @@ Challenges 和 Progress 不属于美国革命单元。美国革命只是第一�
 ### Scan：本地英文 OCR
 
 - Android 和 iPhone 均使用 `getUserMedia` 打开后置摄像头，便于读取视频帧。
-- 在画面中央取样，等待图像稳定，再运行浏览器端 Tesseract.js 7 OCR。
+- 扫描时全屏显示相机，暂时隐藏品牌栏、底部导航和大面积说明卡，仅保留退出按钮、透明取景框和边缘状态条。成功或失败后再弹出结果界面；重新扫描会再次收起界面。
+- 只对透明取景框内可见的文字取样，按视频 `object-fit: cover` 映射回相机原始像素，适配手机横竖屏，避免识别屏幕之外的内容。图像稳定后运行浏览器端 Tesseract.js 7 OCR。
 - 英文模型、Worker 和 WASM 随站点部署，扫描时才加载，不调用第三方 OCR 服务。
 - 当前只匹配四个预设事件：
 
@@ -144,7 +148,7 @@ Challenges 和 Progress 不属于美国革命单元。美国革命只是第一�
 
 ### Boston Harbor：可交互 3D 场景
 
-场景由 Three.js 程序化生成，包括雾气、水面、木质甲板、货物和船只。四个线索物件分别是：
+场景由 Three.js 程序化生成，包括六面体夜空天空盒、分层动态低雾、动态水面、木质甲板、货物、船只，以及错落排列的山墙仓库。仓库采用完整山墙几何，烟囱按屋顶坡面定位，不再穿过三角立面。四个线索物件分别是：
 
 1. 遮光提灯；
 2. 东印度公司茶箱；
@@ -243,13 +247,14 @@ tests/
 ├── learning.test.mjs        # 全局统计、存档、挑战与上下文
 ├── sites-worker.test.mjs    # 静态资源与 SPA 路由回退
 ├── global-browser-fixture.html # 使用独立内存存档的应用测试页
+├── harbor-browser-fixture.html # 独立的真实 3D 港口视觉测试页
 └── ocr-browser-fixture.html # 本地 OCR 集成测试页
 ```
 
 ## 六、Scan 实现流程
 
 1. 进入 Scan 时结束已有 immersive AR，会以 `preferWebXR: false` 请求普通后置摄像头。
-2. 每 450 ms 采样中央文字区域的低分辨率灰度图。
+2. 每 450 ms 采样当前可见取景框的低分辨率灰度图；旋转手机后重新计算取样范围。
 3. 连续稳定帧触发识别；8 秒仍未稳定时放宽限制完成一次尝试。
 4. 对截取区域进行灰度预处理和缩放，再交给 OCR。
 5. 一个扫描周期复用一个 Worker，任务不并发。
@@ -257,6 +262,10 @@ tests/
 7. 退出、隐藏页面、重试、得到结果或卸载组件时取消待处理任务、丢弃过期结果并终止 Worker；退出体验时释放媒体轨道。
 
 Scan 状态包括 `idle / scanning / result / unmatched / profile / dialogue / timeline`。OCR 加载进度、稳定检测与错误独立记录。得到匹配结果后可以保留相机背景，不继续运行 OCR。
+
+点击 `Exit scan` 返回 Library，并关闭相机、取消识别；即使先退出、后授权，延迟返回的媒体轨道也会被释放。页面隐藏后暂停相机，回来可以点击 `Resume` 继续。
+
+本地 `/tests/scan-camera-browser-fixture.html` 用模拟相机画面和可控制的识别结果验证手机布局、成功、无匹配、识别异常及权限拒绝。`QA` 中可切换真实 OCR 来检查完整识别流程。测试页使用内存存档，不修改真实学习进度，也不加入生产构建入口。
 
 ## 七、扩展新的历史内容
 
@@ -284,10 +293,12 @@ Scan 状态包括 `idle / scanning / result / unmatched / profile / dialogue / t
 .\scripts\project.ps1 test:sites
 ```
 
-目前包含 45 项应用测试与 4 项 Sites 测试。浏览器集成测试使用以下开发地址：
+目前包含 54 项应用测试与 4 项 Sites 测试。浏览器集成测试使用以下开发地址：
 
 - `/tests/global-browser-fixture.html`：真实应用配合独立内存存档，避免测试成就污染用户记录。
+- `/tests/harbor-browser-fixture.html`：直接渲染真实 HarborScene，适合桌面和手机横屏的建模、光照与性能复核，不写入学习记录。
 - `/tests/ocr-browser-fixture.html`：本地 OCR 集成验证。
+- `/tests/scan-camera-browser-fixture.html`：模拟相机、手机取景布局与成功 / 失败状态；QA 中可选择真实 OCR，测试画面不等于真机验收。
 
 这些测试页是 Vite 开发入口，不是生产页面。
 

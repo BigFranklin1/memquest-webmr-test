@@ -203,3 +203,43 @@ final result: passed
 - Scope: local prototype verified; no Vercel deployment performed in this update. Physical Android/iPhone hardware and immersive-headset behavior were not revalidated in this pass.
 
 final result: passed (local functional and responsive QA)
+
+## Camera-first mobile Scan (2026-09-04)
+
+- Request: keep the camera readable while acquiring text; show the full UI only after a match, no-match, or error. The existing visual language remains the source; no generated mockup or background image was added.
+- Acquisition: removed the large instruction panel, brand header, bottom navigation and camera-ready toast from the scanning stage. The live video has no brightness filter or full-screen scrim. Only Exit scan, a clear reading-frame outline, short hint, and compact bottom status remain. Result/error cards restore the normal workspace; Scan again returns to acquisition. A paused camera has an explicit Resume control.
+- Portrait 390×844: video fills the viewport. The transparent reading frame is x=18, y=96, width=354, height=632 (about 75% of viewport height). The status begins below the frame. No horizontal overflow. Result actions end at y≈759, before the bottom navigation at y≈777.
+- Landscape 844×390: video fills the viewport; the transparent frame is x=30, y=68, width=784, height=240. The compact status begins at y≈312, below the frame. Brand and primary navigation are absent during acquisition. Safe-area insets are included in edge controls, frame and status positioning.
+- Evidence: local `qa-scan-camera-portrait.png`, `qa-scan-camera-landscape.png` and `qa-scan-camera-result.png`. The developer-only `/tests/scan-camera-browser-fixture.html` uses a clearly labeled synthetic camera and isolated in-memory storage, not the user's camera or saved progress.
+- OCR integration: the real bundled English Tesseract worker read the synthetic page through the production video-to-frame crop in 390×844 and selected Boston Tea Party (99% preset-match score, not OCR confidence). Cropping now accounts for object-fit: cover and recalculates after rotation; it does not read hidden sensor edges. Sampling and OCR use the same rectangle, with the longest output dimension capped at 1280px.
+- Interaction checks: success, three unmatched attempts, OCR execution error, permission denial, retry and exit. The fixture reported zero live media tracks after Exit scan and terminated workers after outcomes/exit. Camera permission responses arriving after exit cannot reopen the camera or error state. WebXR cancellation and unsupported DOM Overlay fallback have regression coverage.
+- Verification: 54 application tests and 4 Sites tests pass; production build succeeds with all three required Sites outputs. A clean browser session has no warnings/errors. The existing large-bundle build warning remains unchanged. During fixture hot-reload, a duplicate-root warning was observed; the fixture now disposes its React root on reload, and clean-session verification passed.
+- Scope: local responsive and functional checks passed. Physical Android/iPhone camera quality, permission UI and safe-area hardware remain manual checks. No Vercel deployment or GitHub push was performed in this update.
+
+final result: passed (local camera-first Scan QA)
+
+## Boston Harbor environment refinement (2026-09-04)
+
+- Scope: modeling and visual treatment only. The interactive target set remains exactly the hooded lantern, East India Company tea chest, Dartmouth and ship carpenter's hatchet; no new learning target or clue data was added.
+- Modeling: replaced the box-like Dartmouth hull with a tapered station-built BufferGeometry and added bulwarks, rails, stern cabin, bowsprit, furled sails, rigging and hull trim. The foreground wharf now includes structural stringers, crossbeams, capped pilings and mooring ropes.
+- Scene density: added non-interactive period dressing only—a timber loading crane, handcart, sacks, rope coils, puddles, cargo bracing, stone quay, gabled waterfront warehouses, chimneys, window light and two distant harbor sloops.
+- Material and atmosphere: generated deterministic local wood grain for dry timber, wet timber and painted hull surfaces; introduced animated subdivided water, moon haze, reflected glints, restrained window warmth and a brighter blue night fill while preserving the low-fog night setting.
+- Mobile performance: the 144 deck planks render as two InstancedMesh batches; warehouse windows are instanced per building. Pixel ratio remains capped at 1.6, shadow map at 1024, and decorative ships have no interaction proxies or dynamic shadows.
+- Evidence: `qa-harbor-final.png` at 1254×960 and `qa-harbor-landscape.png` at 844×390 show the final real Three.js scene through `/tests/harbor-browser-fixture.html`. The fixture uses the production HarborScene and isolated React state.
+- Responsive result: the four gold cues remain visually distinct at both sizes; desktop retains near/mid/far depth and mobile landscape keeps all controls inside the viewport without covering the central investigation corridor.
+- Verification: 54 application tests and production build pass. Existing clue identities, audio, explanation cards, hit proxies, drag threshold, device orientation and WebXR session code were not changed. The known large-JavaScript-chunk warning remains.
+- Scope boundary: local headless-browser visual QA passed. Physical phone GPU frame pacing, device-orientation motion and immersive WebXR remain manual hardware checks; no Vercel deployment was performed.
+
+final result: passed (local visual and regression QA)
+
+## Boston Harbor skybox and waterfront architecture (2026-09-04)
+
+- Background: removed the camera-facing sky plane and assigned a deterministic six-face `THREE.CubeTexture` to `scene.background`. Night gradients, sparse stars, horizon haze and the moon are now part of a directionally stable sky environment when the user turns.
+- Fog: raised exponential scene fog moderately and added five translucent low-altitude fog banks with slow independent drift. The foreground investigation corridor and all four gold clue cues remain readable.
+- Architecture: rebuilt each warehouse around an extruded house-shaped facade with a complete triangular gable. Roof pitch and slab length derive from the same rise; each chimney starts at its calculated roof-surface height and has a separate cap, eliminating the former gable penetration.
+- Composition: replaced the uniform eleven-building strip with fifteen varied warehouses in staggered near and far rows. Height, width, depth, yaw, facade tone, doors, cornices, timber gable braces and attic windows vary without adding interactive targets.
+- Evidence: `qa-harbor-skybox.png` at 1254×960 and `qa-harbor-skybox-landscape.png` at 844×390 render the production HarborScene through `/tests/harbor-browser-fixture.html`.
+- Verification: 54 application tests, the production build, all 4 Sites worker tests and `git diff --check` pass. The only build note remains the existing large-JavaScript-chunk warning.
+- Scope boundary: local headless-browser visual QA passed. Physical phone GPU frame pacing, device orientation and immersive WebXR still require manual hardware checks; no deployment was performed.
+
+final result: passed (local skybox, fog and architecture QA)

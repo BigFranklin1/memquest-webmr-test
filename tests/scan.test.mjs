@@ -2,7 +2,19 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { DIALOGUE_PROMPTS, SAMUEL_ADAMS, SCAN_EVENT_PRESETS, TIMELINE_EVENTS } from "../src/scanData.js";
 import { createTextExcerpt, matchHistoricalEvent, normalizeScannedText } from "../src/scanMatcher.js";
-import { initialScanState, OCR_STATUSES, scanReducer, SCAN_STAGES } from "../src/scanState.js";
+import { initialScanState, isCameraFirstScan, OCR_STATUSES, scanReducer, SCAN_STAGES } from "../src/scanState.js";
+
+test("only acquisition hides workspace chrome; outcomes and camera errors restore it", () => {
+  for (const mode of ["idle", "starting", "camera", "webxr"]) assert.equal(isCameraFirstScan("scanning", mode), true);
+  for (const mode of ["denied", "unsupported", "error"]) assert.equal(isCameraFirstScan("scanning", mode), false);
+  for (const stage of ["idle", "result", "unmatched", "profile", "dialogue", "timeline"]) assert.equal(isCameraFirstScan(stage, "camera"), false);
+  let state = scanReducer(initialScanState, { type: "START" });
+  assert.equal(isCameraFirstScan(state.stage, "camera"), true);
+  state = scanReducer(state, { type: "NO_MATCH" });
+  assert.equal(isCameraFirstScan(state.stage, "camera"), false);
+  state = scanReducer(state, { type: "RETRY_SCAN" });
+  assert.equal(isCameraFirstScan(state.stage, "camera"), true);
+});
 
 test("moves through scanning, matched result, profile, dialogue, and timeline states", () => {
   let state = scanReducer(initialScanState, { type: "START" });

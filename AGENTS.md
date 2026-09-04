@@ -10,12 +10,15 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 
 ## Product decisions
 
+- While Scan is acquiring text, give the live camera the full viewport: hide the brand header, bottom navigation, and large instruction panels; keep only an exit control, a transparent reading frame, and compact edge status. Restore result/error cards and navigation after recognition finishes. OCR must crop to the visible frame through the camera's object-fit cover transform in both phone orientations.
+
 - This is a responsive mobile website, not a simulated device-frame prototype.
 - Match the supplied 1254x960 AR onboarding screenshot: live camera at the edges, centered navy glass panel, three instructional rows, yellow CTA, and four-item bottom navigation.
 - Use immersive WebXR with required DOM Overlay on supported Android browsers and fall back to `getUserMedia` everywhere else.
-- The first version is a camera interaction prototype only: no hit testing, spatial anchors, 3D models, authentication, or persistence.
+- The initial milestone was a camera-only prototype. The current version additionally includes a procedural 3D Harbor and device-local learning records described below; it still has no AR hit testing, spatial anchors, authentication, or cloud persistence.
 - UI copy is English and deployment target is the connected Vercel account.
 - Keep README.md in Chinese while the application UI and narration remain English. Document the project-local PowerShell runner as the default Windows workflow; it must not require Corepack to write into Program Files.
+- Keep docs/HANDOFF.zh-CN.md beginner-friendly for an HCI collaborator with little coding experience. Update its setup, feature boundaries, screenshots, and portfolio guidance when relevant behavior changes; clearly separate local, GitHub, and production versions, and label simulated captures and unverified research claims.
 - Keep the live camera visually prominent: use lighter translucent glass surfaces and a restrained full-screen scrim while preserving text contrast.
 - Mobile landscape is a first-class layout at 844×390: keep the three instruction cards in one row, preserve safe-area padding, and prevent page or navigation overflow.
 - The Scan tab owns the primary prototype journey: `getUserMedia` camera start, local English OCR, one of four configured American Revolution event matches (or an explicit no-match state), an event result, Samuel Adams context, HeyGen question responses, and an interactive four-event timeline. Camera frames and recognized text stay on device; the bundled Tesseract worker and English model load only while scanning.
@@ -33,3 +36,5 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 - People follows the supplied Samuel Adams dossier reference: cinematic right-aligned portrait blended with a navy gradient, large name and biography above a two-column His Role / Key Events / Network layout. Keep a compact horizontal person switcher; relationships are clickable and distinguish allies, opponents, and contextual links. Portraits are labeled historical interpretations, and the dossier stacks cleanly on phones.
 - The Boston Harbor clue set is historically grounded in the night action: a hooded lantern, an East India Company tea chest, the Dartmouth tea ship, and a ship carpenter’s hatchet. Use translucent spatial rings plus forgiving invisible hit proxies; a drag gesture must never trigger a clue.
 - Selecting a Harbor clue opens a compact card beside that object, not a centered modal. The card offers an item-specific HeyGen narration and an in-place “Why it matters” expansion with related history; audio stops when the clue changes, closes, or the scene exits.
+- Keep the Harbor visually dense without inventing extra learning targets: environment-only wharf structure, cargo dressing, waterfront warehouses, rigging, distant vessels, water and atmosphere may enrich the reconstruction, while the only interactive clue objects remain the hooded lantern, tea chest, Dartmouth, and carpenter's hatchet. Favor a tapered period ship silhouette and readable moonlit depth over box-like placeholder geometry.
+- The Harbor night environment uses a real procedural `CubeTexture` skybox rather than a flat backdrop. Preserve layered low fog without obscuring clue cues, and keep the waterfront warehouses staggered with complete gabled shells; chimney bases must be calculated from the roof slope so they never extend through the triangular facade.

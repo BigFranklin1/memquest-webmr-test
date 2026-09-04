@@ -13,32 +13,58 @@ const DEFAULTS = Object.freeze({
   maxAttempts: 3,
 });
 
-function drawRegion(videoElement, canvas, width, height, filter = "none") {
-  const videoWidth = videoElement.videoWidth || videoElement.clientWidth;
-  const videoHeight = videoElement.videoHeight || videoElement.clientHeight;
-  if (!videoWidth || !videoHeight || videoElement.readyState < 2) return null;
+// Map the visible reading frame back through object-fit: cover to sensor pixels.
+// A portrait phone only shows a narrow slice of a landscape camera stream.
+export function calculateCaptureRegion(videoWidth, videoHeight, videoBounds, captureBounds) {
+  if (!(videoWidth > 0 && videoHeight > 0 && videoBounds?.width > 0 && videoBounds?.height > 0)) return null;
+  const view = videoBounds;
+  const frame = captureBounds ?? {
+    left: view.left + view.width * 0.07,
+    top: view.top + view.height * 0.22,
+    width: view.width * 0.86,
+    height: view.height * 0.56,
+  };
+  const left = Math.max(view.left, frame.left);
+  const top = Math.max(view.top, frame.top);
+  const right = Math.min(view.left + view.width, frame.left + frame.width);
+  const bottom = Math.min(view.top + view.height, frame.top + frame.height);
+  if (!(right > left && bottom > top)) return null;
+  const scale = Math.max(view.width / videoWidth, view.height / videoHeight);
+  const offsetX = (videoWidth * scale - view.width) / 2;
+  const offsetY = (videoHeight * scale - view.height) / 2;
+  return {
+    x: (left - view.left + offsetX) / scale,
+    y: (top - view.top + offsetY) / scale,
+    width: (right - left) / scale,
+    height: (bottom - top) / scale,
+  };
+}
 
-  const sourceWidth = videoWidth * 0.86;
-  const sourceHeight = videoHeight * 0.56;
-  const sourceX = (videoWidth - sourceWidth) / 2;
-  const sourceY = (videoHeight - sourceHeight) / 2;
+function drawRegion(videoElement, canvas, region, width, height, filter = "none") {
+  if (!region || videoElement.readyState < 2) return null;
   canvas.width = width;
   canvas.height = height;
   const context = canvas.getContext("2d", { willReadFrequently: true });
   if (!context) return null;
   context.filter = filter;
-  context.drawImage(videoElement, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, width, height);
+  context.drawImage(videoElement, region.x, region.y, region.width, region.height, 0, 0, width, height);
   context.filter = "none";
   return context;
 }
 
-export function createFrameTools(documentObject = document) {
+export function createFrameTools(documentObject = document, getCaptureBounds = () => null) {
   const stabilityCanvas = documentObject.createElement("canvas");
   const recognitionCanvas = documentObject.createElement("canvas");
+  const getRegion = (video) => calculateCaptureRegion(
+    video.videoWidth,
+    video.videoHeight,
+    video.getBoundingClientRect?.() ?? { left: 0, top: 0, width: video.clientWidth || video.videoWidth, height: video.clientHeight || video.videoHeight },
+    getCaptureBounds(),
+  );
 
   return {
     sample(videoElement) {
-      const context = drawRegion(videoElement, stabilityCanvas, 64, 48, "grayscale(1)");
+      const context = drawRegion(videoElement, stabilityCanvas, getRegion(videoElement), 64, 48, "grayscale(1)");
       if (!context) return null;
       const pixels = context.getImageData(0, 0, 64, 48).data;
       const sample = new Uint8Array(64 * 48);
@@ -48,12 +74,12 @@ export function createFrameTools(documentObject = document) {
       return sample;
     },
     capture(videoElement) {
-      const videoWidth = videoElement.videoWidth || 1280;
-      const videoHeight = videoElement.videoHeight || 720;
-      const regionRatio = (videoWidth * 0.86) / (videoHeight * 0.56);
-      const width = Math.min(1280, Math.max(720, Math.round(videoWidth * 0.86)));
-      const height = Math.max(360, Math.round(width / regionRatio));
-      const context = drawRegion(videoElement, recognitionCanvas, width, height, "grayscale(1) contrast(1.35)");
+      const region = getRegion(videoElement);
+      if (!region) throw new Error("Camera frame is not ready");
+      const scale = 1280 / Math.max(region.width, region.height);
+      const width = Math.max(1, Math.round(region.width * scale));
+      const height = Math.max(1, Math.round(region.height * scale));
+      const context = drawRegion(videoElement, recognitionCanvas, region, width, height, "grayscale(1) contrast(1.35)");
       if (!context) throw new Error("Camera frame is not ready");
       return recognitionCanvas;
     },

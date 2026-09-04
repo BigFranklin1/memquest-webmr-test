@@ -1,3 +1,8 @@
+// Acquisition uses edge controls; outcomes restore the full workspace.
+export function isCameraFirstScan(stage, mode) {
+  return stage === "scanning" && !["denied", "unsupported", "error"].includes(mode);
+}
+
 export const SCAN_STAGES = Object.freeze({
   IDLE: "idle",
   SCANNING: "scanning",

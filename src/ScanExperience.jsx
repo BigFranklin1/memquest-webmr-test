@@ -30,8 +30,9 @@ import continentalCongressVoice from "./assets/voice/event-continental-congress.
 import stampActVoice from "./assets/voice/event-stamp-act.wav";
 import samuelAdamsIntroductionVoice from "./assets/voice/samuel-adams-introduction.wav";
 import { DIALOGUE_PROMPTS, SAMUEL_ADAMS, SCAN_EVENT_PRESETS, TIMELINE_EVENTS } from "./scanData.js";
-import { createOcrScanner } from "./ocrScanner.js";
+import { createFrameTools, createOcrScanner } from "./ocrScanner.js";
 import { OCR_STATUSES, SCAN_STAGES } from "./scanState.js";
+import "./scan-capture.css";
 
 const TIMELINE_IMAGES = Object.freeze({
   "stamp-act": stampActImage,
@@ -64,50 +65,41 @@ function BackButton({ onClick, label = "Back to profile" }) {
 
 const OCR_STATUS_COPY = Object.freeze({
   [OCR_STATUSES.LOADING]: {
-    kicker: "Preparing local recognition",
-    title: "Loading the English archive lens…",
-    description: "The OCR model runs on this device. Camera frames are never uploaded.",
+    title: "Preparing scanner…",
+    detail: "Loading English text recognition",
   },
   [OCR_STATUSES.STABILIZING]: {
-    kicker: "Archive lens active",
-    title: "Hold the printed text steady",
-    description: "Place an English title, year, or historical passage inside the frame.",
+    title: "Hold text steady",
+    detail: "Scanning starts automatically",
   },
   [OCR_STATUSES.RECOGNIZING]: {
-    kicker: "Reading the page",
-    title: "Matching historical context…",
-    description: "Comparing visible text with four American Revolution event records.",
+    title: "Reading text…",
+    detail: "Looking for a historical match",
   },
 });
 
-function ScanningView({ scanState, cameraReady }) {
+function ScanningView({ scanState, cameraReady, captureFrameRef, onResume }) {
   const copy = cameraReady
     ? OCR_STATUS_COPY[scanState.ocrStatus] ?? OCR_STATUS_COPY[OCR_STATUSES.LOADING]
     : {
-      kicker: "Camera permission required",
-      title: "Opening the archive lens…",
-      description: "Allow access to your rear camera, then point it at printed English text.",
+      title: onResume ? "Camera paused" : "Opening camera…",
+      detail: onResume ? "Tap Resume to continue scanning" : "Allow camera access to scan text",
     };
   const progress = Math.round((scanState.ocrProgress || 0) * 100);
 
   return (
-    <section className="scanning-view ocr-scanning-view" aria-labelledby="scanning-title">
-      <div className={`ocr-capture-frame ${scanState.ocrStatus === OCR_STATUSES.RECOGNIZING ? "is-recognizing" : ""}`} aria-hidden="true">
-        <span className="ocr-frame-label"><TextAa size={18} weight="duotone" /> English printed text</span>
-        <Scan size={70} weight="duotone" />
-        <span className="ocr-frame-hint">Keep the title and year inside this frame</span>
+    <section className="scan-capture-view" aria-labelledby="scanning-title">
+      <div ref={captureFrameRef} className="scan-reading-frame" aria-hidden="true">
+        <span className="scan-reading-hint"><TextAa size={17} /> Frame the English title or passage</span>
       </div>
-      <div className="ocr-scan-copy">
-        <p className="scan-kicker">{copy.kicker}</p>
-        <h1 id="scanning-title">{copy.title}</h1>
-        <p>{copy.description}</p>
-        <div className="ocr-progress" aria-label={`Text recognition ${progress}%`}>
-          <span style={{ width: `${progress}%` }} />
+      <div className="scan-capture-status">
+        <div className="scan-capture-status-row" role="status" aria-live="polite">
+          <SpinnerGap className={cameraReady && scanState.ocrStatus !== OCR_STATUSES.STABILIZING ? "is-spinning" : ""} size={20} aria-hidden="true" />
+          <div><h1 id="scanning-title">{copy.title}</h1><p>{copy.detail}</p></div>
+          {onResume ? <button type="button" onClick={onResume}>Resume</button> : <span className="scan-capture-pass">{cameraReady && scanState.ocrStatus === OCR_STATUSES.LOADING ? `${progress}%` : `${Math.min(3, scanState.attemptCount + 1)} / 3`}</span>}
         </div>
-        <div className="ocr-scan-meta">
-          <span><ShieldCheck size={17} weight="duotone" /> Processed on device</span>
-          <span><SpinnerGap className={scanState.ocrStatus === OCR_STATUSES.RECOGNIZING ? "is-spinning" : ""} size={17} /> Pass {Math.min(3, scanState.attemptCount + 1)} of 3</span>
-        </div>
+        {cameraReady && scanState.ocrStatus !== OCR_STATUSES.STABILIZING && <div className="scan-capture-progress" role="progressbar" aria-label="Text recognition" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}><span style={{ width: `${progress}%` }} /></div>}
+        <p className="scan-capture-privacy"><ShieldCheck size={13} aria-hidden="true" /> On-device only · No images uploaded</p>
       </div>
     </section>
   );
@@ -377,8 +369,10 @@ export function ScanExperience({
   onRetryCamera,
   onMatchedEvent,
   videoElement,
+  recognizerFactory,
 }) {
   const scannerRef = useRef(null);
+  const captureFrameRef = useRef(null);
   const audioRef = useRef(null);
   const [speaking, setSpeaking] = useState(false);
 
@@ -387,6 +381,8 @@ export function ScanExperience({
 
     const scanner = createOcrScanner({
       videoElement,
+      recognizerFactory,
+      frameTools: createFrameTools(document, () => captureFrameRef.current?.getBoundingClientRect()),
       onProgress: (progress) => dispatchScan({ type: "OCR_PROGRESS", ...progress }),
       onMatch: onMatchedEvent,
       onNoMatch: (result) => dispatchScan({ type: "NO_MATCH", ...result }),
@@ -398,7 +394,7 @@ export function ScanExperience({
       if (scannerRef.current === scanner) scannerRef.current = null;
       scanner.stop();
     };
-  }, [dispatchScan, experience.mode, onMatchedEvent, scanState.stage, videoElement]);
+  }, [dispatchScan, experience.mode, onMatchedEvent, recognizerFactory, scanState.stage, videoElement]);
 
   useEffect(() => () => {
     const audio = audioRef.current;
@@ -526,5 +522,5 @@ export function ScanExperience({
     );
   }
 
-  return <ScanningView scanState={scanState} cameraReady={experience.mode === "camera"} />;
+  return <ScanningView scanState={scanState} cameraReady={experience.mode === "camera"} captureFrameRef={captureFrameRef} onResume={experience.mode === "idle" ? onRetryCamera : undefined} />;
 }

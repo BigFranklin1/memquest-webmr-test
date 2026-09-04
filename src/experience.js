@@ -89,6 +89,11 @@ export function createExperienceController({
   let xrSupportPromise = null;
   let startPromise = null;
   let stopping = false;
+  let generation = 0;
+
+  const assertCurrent = (run) => {
+    if (run !== generation) throw Object.assign(new Error("Experience cancelled"), { name: "AbortError" });
+  };
 
   const setState = (nextState) => {
     state = { code: null, message: "", ...nextState };
@@ -155,32 +160,37 @@ export function createExperienceController({
     session.requestAnimationFrame(renderFrame);
   };
 
-  const startWebXr = async () => {
-    if (!(await probeSupport())) return false;
+  const startWebXr = async (run) => {
+    const supported = await probeSupport();
+    assertCurrent(run);
+    if (!supported) return false;
+    let session;
 
     try {
-      const session = await runtime.navigator.xr.requestSession("immersive-ar", {
+      session = await runtime.navigator.xr.requestSession("immersive-ar", {
         requiredFeatures: ["dom-overlay"],
         optionalFeatures: ["local-floor"],
         domOverlay: { root: overlayElement },
       });
-
+      assertCurrent(run);
       xrSession = session;
-      session.addEventListener("end", handleXrEnded, { once: true });
+      session.addEventListener("end", () => {
+        if (xrSession === session) handleXrEnded();
+      }, { once: true });
       await configureXrLayer(session);
+      assertCurrent(run);
       setState({ mode: EXPERIENCE_MODES.WEBXR });
       return true;
     } catch (error) {
-      if (xrSession) {
-        const failedSession = xrSession;
-        xrSession = null;
+      if (session) {
+        if (xrSession === session) xrSession = null;
         try {
-          await failedSession.end();
+          await session.end();
         } catch {
           // The browser may already have ended a partially configured session.
         }
       }
-
+      assertCurrent(run);
       if (RECOVERABLE_XR_ERRORS.has(error?.name)) return false;
       throw Object.assign(error ?? new Error("WebXR failed"), { experienceStage: "webxr" });
     }
@@ -236,22 +246,30 @@ export function createExperienceController({
     }
   };
 
-  const startCamera = async () => {
+  const startCamera = async (run) => {
+    assertCurrent(run);
     if (!runtime.navigator?.mediaDevices?.getUserMedia) {
       setState(unsupportedState());
       return false;
     }
 
-    stream = await requestCameraStream();
+    const acquiredStream = await requestCameraStream();
+    if (run !== generation) {
+      acquiredStream.getTracks().forEach((track) => track.stop());
+      assertCurrent(run);
+    }
+    stream = acquiredStream;
     videoElement.srcObject = stream;
     videoElement.muted = true;
     videoElement.playsInline = true;
     await videoElement.play();
+    assertCurrent(run);
     setState({ mode: EXPERIENCE_MODES.CAMERA });
     return true;
   };
 
   const runStart = async ({ preferWebXR = true } = {}) => {
+    const run = ++generation;
     setState({ mode: EXPERIENCE_MODES.STARTING });
 
     if (runtime.isSecureContext === false && runtime.location?.hostname !== "localhost") {
@@ -260,10 +278,12 @@ export function createExperienceController({
     }
 
     try {
-      if (preferWebXR && await startWebXr()) return state;
-      await startCamera();
+      if (preferWebXR && await startWebXr(run)) return state;
+      await startCamera(run);
       return state;
     } catch (error) {
+      if (run !== generation) return state;
+      stopCamera();
       if (error?.name === "CameraUnsupportedError") return setState(unsupportedState());
       return setState(classifyExperienceError(error, error?.experienceStage ?? "camera"));
     }
@@ -275,14 +295,17 @@ export function createExperienceController({
     }
     if (startPromise) return startPromise;
 
-    startPromise = runStart({ preferWebXR }).finally(() => {
-      startPromise = null;
+    const pending = runStart({ preferWebXR }).finally(() => {
+      if (startPromise === pending) startPromise = null;
     });
+    startPromise = pending;
     return startPromise;
   };
 
   const stopExperience = async () => {
     if (stopping) return state;
+    const run = ++generation;
+    startPromise = null;
     stopping = true;
     stopCamera();
 
@@ -297,6 +320,7 @@ export function createExperienceController({
     }
 
     stopping = false;
+    if (run !== generation) return state;
     return setState({ mode: EXPERIENCE_MODES.IDLE });
   };
 

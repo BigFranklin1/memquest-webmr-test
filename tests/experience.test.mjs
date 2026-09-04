@@ -31,6 +31,48 @@ function createController(env, onStateChange = () => {}) {
   });
 }
 
+test("exiting during camera permission cancels the late stream and allows a fresh start", async () => {
+  let resolveFirst;
+  const lateStream = createStream();
+  const freshStream = createStream();
+  const video = createVideo();
+  let calls = 0;
+  const controller = createExperienceController({
+    env: { isSecureContext: true, navigator: { mediaDevices: { getUserMedia: () => ++calls === 1 ? new Promise(resolve => { resolveFirst = resolve; }) : Promise.resolve(freshStream) } } },
+    videoElement: video,
+  });
+  const pending = controller.startExperience({ preferWebXR: false });
+  await controller.stopExperience();
+  await controller.startExperience({ preferWebXR: false });
+  resolveFirst(lateStream);
+  await pending;
+  assert.equal(lateStream.track.stopped, true);
+  assert.equal(freshStream.track.stopped, false);
+  assert.equal(video.srcObject, freshStream);
+  assert.equal(controller.mode, "camera");
+  await controller.stopExperience();
+});
+
+test("a permission denial arriving after exit does not reopen error UI", async () => {
+  let rejectPermission;
+  const controller = createController({ isSecureContext: true, navigator: { mediaDevices: { getUserMedia: () => new Promise((_, reject) => { rejectPermission = reject; }) } } });
+  const pending = controller.startExperience({ preferWebXR: false });
+  await controller.stopExperience();
+  rejectPermission(Object.assign(new Error("denied"), { name: "NotAllowedError" }));
+  await pending;
+  assert.equal(controller.mode, "idle");
+});
+
+test("playback errors release the newly acquired camera stream", async () => {
+  const stream = createStream();
+  const video = { ...createVideo(), play: async () => { throw new Error("play failed"); } };
+  const controller = createExperienceController({ env: { isSecureContext: true, navigator: { mediaDevices: { getUserMedia: async () => stream } } }, videoElement: video });
+  await controller.startExperience({ preferWebXR: false });
+  assert.equal(controller.mode, "error");
+  assert.equal(stream.track.stopped, true);
+  assert.equal(video.srcObject, null);
+});
+
 test("turns a stalled camera permission request into a recoverable timeout", async () => {
   const controller = createExperienceController({
     env: {
@@ -191,4 +233,40 @@ test("reports unsupported when no mediaDevices API exists", async () => {
   const result = await controller.startExperience();
   assert.equal(result.mode, EXPERIENCE_MODES.UNSUPPORTED);
   assert.equal(result.code, "camera-unsupported");
+});
+
+test("cancels a pending XR request without starting a fallback camera", async () => {
+  let resolveSession;
+  let cameraCalls = 0;
+  let ended = 0;
+  const controller = createController({
+    isSecureContext: true,
+    navigator: {
+      xr: { isSessionSupported: async () => true, requestSession: () => new Promise(resolve => { resolveSession = resolve; }) },
+      mediaDevices: { getUserMedia: async () => { cameraCalls += 1; return createStream(); } },
+    },
+  });
+  const pending = controller.startExperience();
+  await new Promise(resolve => setImmediate(resolve));
+  await controller.stopExperience();
+  resolveSession({ end: async () => { ended += 1; } });
+  await pending;
+  assert.equal(ended, 1);
+  assert.equal(cameraCalls, 0);
+  assert.equal(controller.mode, "idle");
+});
+
+test("missing XR DOM overlay still falls back to the camera", async () => {
+  const stream = createStream();
+  const controller = createController({
+    isSecureContext: true,
+    navigator: {
+      xr: { isSessionSupported: async () => true, requestSession: async () => { throw Object.assign(new Error("DOM overlay unavailable"), { name: "NotSupportedError" }); } },
+      mediaDevices: { getUserMedia: async () => stream },
+    },
+  });
+  await controller.startExperience();
+  assert.equal(controller.mode, "camera");
+  await controller.stopExperience();
+  assert.equal(stream.track.stopped, true);
 });

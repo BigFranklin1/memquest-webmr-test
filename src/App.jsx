@@ -17,7 +17,7 @@ import {
 } from "./experience.js";
 import { ScanExperience } from "./ScanExperience.jsx";
 import { TIMELINE_EVENTS } from "./scanData.js";
-import { initialScanState, scanReducer } from "./scanState.js";
+import { initialScanState, isCameraFirstScan, scanReducer } from "./scanState.js";
 import { LibraryExperience } from "./LibraryExperience.jsx";
 import {
   LIBRARY_STAGES,
@@ -74,11 +74,12 @@ function TabNav({ activeTab, onTabChange, scanLayout = false }) {
   );
 }
 
-export function App({ storage, initialTab = "welcome" } = {}) {
+export function App({ storage, initialTab = "welcome", experienceControllerFactory = createExperienceController, recognizerFactory } = {}) {
   const appRef = useRef(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const controllerRef = useRef(null);
+  const scanStartRef = useRef(0);
   const toastTimerRef = useRef(null);
   const [experience, setExperience] = useState({
     mode: EXPERIENCE_MODES.IDLE,
@@ -113,7 +114,7 @@ export function App({ storage, initialTab = "welcome" } = {}) {
 
   useEffect(() => {
     const overlayElement = appRef.current;
-    const controller = createExperienceController({
+    const controller = experienceControllerFactory({
       videoElement: videoRef.current,
       overlayElement,
       canvasElement: canvasRef.current,
@@ -123,9 +124,15 @@ export function App({ storage, initialTab = "welcome" } = {}) {
     controller.probeSupport();
 
     const handleVisibility = () => {
-      if (document.visibilityState === "hidden") controller.stopExperience();
+      if (document.visibilityState === "hidden") {
+        scanStartRef.current += 1;
+        controller.stopExperience();
+      }
     };
-    const handlePageHide = () => controller.stopExperience();
+    const handlePageHide = () => {
+      scanStartRef.current += 1;
+      controller.stopExperience();
+    };
     const preventXrSelect = (event) => {
       if (event.target?.closest?.("button")) event.preventDefault();
     };
@@ -138,10 +145,11 @@ export function App({ storage, initialTab = "welcome" } = {}) {
       document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("pagehide", handlePageHide);
       overlayElement?.removeEventListener("beforexrselect", preventXrSelect);
+      scanStartRef.current += 1;
       controller.stopExperience();
       if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
     };
-  }, []);
+  }, [experienceControllerFactory]);
 
   const announce = useCallback((message) => {
     setToast(message);
@@ -150,21 +158,20 @@ export function App({ storage, initialTab = "welcome" } = {}) {
   }, []);
 
   const beginScan = useCallback(async () => {
+    const request = ++scanStartRef.current;
     setActiveTab("scan");
     dispatchScan({ type: "START" });
+    setToast("");
+    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
 
-    if (experience.mode === EXPERIENCE_MODES.CAMERA) {
-      announce("Camera ready. Local text recognition is active");
-      return;
-    }
+    if (experience.mode === EXPERIENCE_MODES.CAMERA) return;
 
     if (experience.mode === EXPERIENCE_MODES.WEBXR) {
       await controllerRef.current?.stopExperience();
     }
 
-    const result = await controllerRef.current?.startExperience({ preferWebXR: false });
-    if (result?.mode === EXPERIENCE_MODES.CAMERA) announce("Camera ready. Local text recognition is active");
-  }, [announce, experience.mode]);
+    if (request === scanStartRef.current) await controllerRef.current?.startExperience({ preferWebXR: false });
+  }, [experience.mode]);
 
   const handleMatchedEvent = useCallback((match) => {
     dispatchScan({ type: "MATCH_EVENT", ...match });
@@ -186,7 +193,8 @@ export function App({ storage, initialTab = "welcome" } = {}) {
       beginScan();
       return;
     }
-    if (isActiveMode(experience.mode)) controllerRef.current?.stopExperience();
+    scanStartRef.current += 1;
+    controllerRef.current?.stopExperience();
     setActiveTab(tab.id);
     announce(`Switched to ${tab.label}`);
   };
@@ -213,6 +221,7 @@ export function App({ storage, initialTab = "welcome" } = {}) {
         : "Enable AR Camera";
 
   const scanIsOpen = activeTab === "scan";
+  const cameraFirstScan = scanIsOpen && isCameraFirstScan(scanState.stage, experience.mode);
   const libraryIsOpen = activeTab === "library";
   const globalIsOpen = activeTab === "challenges" || activeTab === "progress";
   const libraryIsHarbor = libraryIsOpen && libraryState.stage === LIBRARY_STAGES.HARBOR;
@@ -220,8 +229,9 @@ export function App({ storage, initialTab = "welcome" } = {}) {
   return (
     <main
       ref={appRef}
-      className={`experience-app ${scanIsOpen ? "has-scan-workspace" : ""} ${libraryIsOpen ? "has-library-workspace" : ""} ${libraryIsHarbor ? "has-harbor-workspace" : ""} ${globalIsOpen ? "has-global-workspace" : ""}`}
+      className={`experience-app ${scanIsOpen ? "has-scan-workspace" : ""} ${cameraFirstScan ? "is-scan-capture" : ""} ${libraryIsOpen ? "has-library-workspace" : ""} ${libraryIsHarbor ? "has-harbor-workspace" : ""} ${globalIsOpen ? "has-global-workspace" : ""}`}
       data-mode={experience.mode}
+      data-scan-stage={scanIsOpen ? scanState.stage : undefined}
     >
       <video
         ref={videoRef}
@@ -236,7 +246,15 @@ export function App({ storage, initialTab = "welcome" } = {}) {
 
       {scanIsOpen ? (
         <section className="scan-shell" aria-label="MemQuest scan experience">
-          <header className="scan-app-header">
+          {cameraFirstScan ? (
+            <header className="scan-capture-toolbar">
+              <button type="button" className="scan-capture-exit" onClick={() => handleTabChange({ id: "library", label: "Library" })}>
+                <ArrowLeft size={19} weight="bold" aria-hidden="true" />
+                Exit scan
+              </button>
+              <span className="scan-capture-label"><Scan size={17} aria-hidden="true" /> {experience.mode === "camera" ? "Live camera" : "Scan text"}</span>
+            </header>
+          ) : <header className="scan-app-header">
             <div className="scan-brand">
               <span className="scan-brand-mark"><Sparkle size={22} weight="fill" /></span>
               <strong>MemQuest</strong>
@@ -245,7 +263,7 @@ export function App({ storage, initialTab = "welcome" } = {}) {
               <span>History Explorer<small>Your personal archive</small></span>
               <span className="scan-user-icon"><User size={21} weight="duotone" /></span>
             </div>
-          </header>
+          </header>}
 
           <div className="scan-content">
             <ScanExperience
@@ -255,10 +273,11 @@ export function App({ storage, initialTab = "welcome" } = {}) {
               onRetryCamera={beginScan}
               onMatchedEvent={handleMatchedEvent}
               videoElement={videoRef.current}
+              recognizerFactory={recognizerFactory}
             />
           </div>
 
-          <TabNav activeTab={activeTab} onTabChange={handleTabChange} scanLayout />
+          {!cameraFirstScan && <TabNav activeTab={activeTab} onTabChange={handleTabChange} scanLayout />}
         </section>
       ) : libraryIsOpen ? (
         <section className={`library-shell ${returnTarget ? "has-learning-return" : ""}`} aria-label="MemQuest historical library">
