@@ -1077,3 +1077,9 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\project.ps1 de
 负责加载和动画的是 `src/SamuelAdamsProjectionModel.js`；默认投影组件是 `src/ScanArtifactProjection.jsx`，封面锚定组件是 `src/ScanImageAnchorProjection.jsx`。向 Codex 提要求时，可以直接说：“调整 Samuel Adams 在扫描结果中的尺寸，保留循环动画、粒子效果和 Page anchor 开关。”
 
 首次下载约 8.4 MB，慢速手机网络需要等待。若看到 “Character could not load”，点击 “Retry character”；周围的学习按钮依然可用。系统开启“减少动态效果”时会显示静止人物。新截图是在本地测试夹具中采集的，不能作为真机空间追踪精度的证据。这次代码修改不会自动更新 GitHub 或 Vercel，发布仍需要单独执行。
+
+## 补充：统一界面版本（2026-09-05）
+
+本地界面已统一为深蓝、低饱和暖金和轻量面板。应用级标题使用系统无衬线，历史人物与事件标题保留衬线。Library 入口增加历史图像背景，所有学习页、全局页面及 AR 浮层使用共享视觉规范；功能与本地学习数据规则不变。
+
+继续调整外观前，先读 [界面设计规范](./DESIGN-SYSTEM.zh-CN.md)。这里的截图和规范反映本地视觉改版，不表示 GitHub 或 Vercel 已同步；前文章节的旧截图保留为流程说明。作品集可比较改版前后，但不要把模拟相机验证写成真机测试。

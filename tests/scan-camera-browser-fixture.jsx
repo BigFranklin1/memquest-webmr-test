@@ -7,6 +7,7 @@ import { createExperienceController } from "../src/experience.js";
 import { initialScanState, OCR_STATUSES, SCAN_STAGES } from "../src/scanState.js";
 import "../src/styles.css";
 import "../src/archive-refresh.css";
+import "../src/interface-theme.css";
 import bostonTeaPartyAnchorImage from "../src/assets/tracking/boston-tea-party-cover.png";
 
 const records = new Map();

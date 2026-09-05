@@ -3,27 +3,27 @@
 .global-workspace { position: absolute; inset: 0; overflow: auto; overscroll-behavior: contain; color: #e9edff; background: radial-gradient(ellipse at 90% 0%, #20334b50, transparent 50%), #07101e; scrollbar-width: thin; scrollbar-color: #3b485e transparent; }
 .global-workspace button, .global-workspace select, .learning-return-bar button { cursor: pointer; }
 .global-workspace button:disabled { cursor: default; opacity: .5; }
-.global-workspace button:focus-visible, .global-workspace select:focus-visible, .global-workspace summary:focus-visible, .learning-return-bar button:focus-visible { outline: 2px solid #f7cf55; outline-offset: 4px; }
+.global-workspace button:focus-visible, .global-workspace select:focus-visible, .global-workspace summary:focus-visible, .learning-return-bar button:focus-visible { outline: 2px solid var(--mq-gold, #e8c775); outline-offset: 4px; }
 .global-workspace h1, .global-workspace h2, .global-workspace h3, .global-workspace p { margin: 0; }
 .global-workspace h1, .global-workspace h2 { font-family: Georgia, "Times New Roman", serif; font-weight: 500; }
 .global-workspace p { color: #b6bfd0; line-height: 1.65; }
 .global-workspace h2 { font-size: clamp(24px, 2.2vw, 32px); line-height: 1.2; }
 .global-workspace h3 { font-size: 17px; line-height: 1.4; }
 .journey-topbar { min-height: 86px; padding: max(18px, env(safe-area-inset-top)) max(32px, env(safe-area-inset-right)) 18px max(32px, env(safe-area-inset-left)); display: flex; gap: 25px; align-items: center; border-bottom: 1px solid #bdd0f018; }
-.journey-brand { display: flex; gap: 12px; align-items: center; color: #f7cf55; font-family: Georgia, serif; font-size: 25px; }
-.journey-brand > span { display: grid; place-items: center; width: 39px; height: 39px; border-radius: 12px; color: #332b14; background: #f7cf55; }
+.journey-brand { display: flex; gap: 12px; align-items: center; color: var(--mq-gold, #e8c775); font-family: Georgia, serif; font-size: 25px; }
+.journey-brand > span { display: grid; place-items: center; width: 39px; height: 39px; border-radius: 12px; color: #332b14; background: var(--mq-gold, #e8c775); }
 .journey-global-label { display: flex; gap: 9px; align-items: center; border-left: 1px solid #c2ccdd33; padding-left: 25px; }
 .journey-global-label small { font-size: 9px; letter-spacing: .15em; color: #94a5bd; margin-left: 7px; }
 .journey-save-status { margin-left: auto; color: #aab8c9; font-size: 12px; }
 .journey-content { width: min(1180px, 100%); margin: auto; padding: 40px max(28px, env(safe-area-inset-right)) max(125px, calc(env(safe-area-inset-bottom) + 105px)) max(28px, env(safe-area-inset-left)); }
 .journey-intro { margin-bottom: 32px; }
-.journey-eyebrow { display: block; color: #eac75d; font-size: 11px; line-height: 1.6; letter-spacing: .13em; font-weight: 700; }
+.journey-eyebrow { display: block; color: var(--mq-gold, #e8c775); font-size: 11px; line-height: 1.6; letter-spacing: .13em; font-weight: 700; }
 .journey-intro h1 { margin: 12px 0 15px; font-size: clamp(36px, 4.5vw, 60px); letter-spacing: -.04em; line-height: 1.06; }
 .journey-intro p { max-width: 590px; font-size: 15px; }
-.journey-button { display: inline-flex; justify-content: center; align-items: center; gap: 12px; min-height: 46px; padding: 12px 20px; border: 1px solid #f7cf55; border-radius: 11px; background: #f7cf55; color: #2e2714; font-size: 13px; font-weight: 700; text-decoration: none; }
+.journey-button { display: inline-flex; justify-content: center; align-items: center; gap: 12px; min-height: 46px; padding: 12px 20px; border: 1px solid var(--mq-gold, #e8c775); border-radius: 11px; background: var(--mq-gold, #e8c775); color: #2e2714; font-size: 13px; font-weight: 700; text-decoration: none; }
 .journey-button.is-secondary { color: #e5eafa; background: #1a2840b3; border-color: #a6bbdf38; }
 .journey-button:not(:disabled):hover { filter: brightness(1.08); }
-.journey-back, .journey-text-link { border: 0; background: none; color: #e8c75e; padding: 8px 0; display: inline-flex; align-items: center; gap: 9px; min-height: 44px; font-size: 13px; font-weight: 650; }
+.journey-back, .journey-text-link { border: 0; background: none; color: var(--mq-gold, #e8c775); padding: 8px 0; display: inline-flex; align-items: center; gap: 9px; min-height: 44px; font-size: 13px; font-weight: 650; }
 .journey-back { margin: -15px 0 20px; color: #bcc9dc; }
 .challenge-feature, .challenge-detail-header { position: relative; isolation: isolate; background: #122035; border: 1px solid #a9bee52b; border-radius: 23px; overflow: hidden; }
 .challenge-feature::before, .challenge-detail-header::before { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, #0e192a 12%, #101b2ce0 44%, #0f1a2b16 85%), var(--feature-image) 80% 48% / cover; }
@@ -61,7 +61,7 @@
 .journey-panel { padding: 25px; border: 1px solid #a9bee527; background: #111c2e; border-radius: 18px; min-width: 0; }
 .journey-panel > .journey-section-title:first-child { margin-top: 0; }
 .journey-empty, .challenge-start { text-align: center; padding: 40px 24px; }
-.journey-empty > svg, .challenge-start > svg { color: #e8c75e; margin-bottom: 17px; }
+.journey-empty > svg, .challenge-start > svg { color: var(--mq-gold, #e8c775); margin-bottom: 17px; }
 .journey-empty p, .challenge-start p { max-width: 620px; margin: 12px auto 20px; }
 .challenge-detail-header { margin-bottom: 24px; }
 .challenge-detail-header > div { max-width: 760px; padding: 35px; }
@@ -79,7 +79,7 @@
 .harbor-check-grid small { color: #a8b5c9; font-size: 12px; }
 .order-challenge ol { list-style: none; padding: 0; display: grid; gap: 12px; }
 .order-challenge li { display: flex; align-items: center; gap: 17px; padding: 15px; border: 1px solid #a9bee52b; background: #0b1728; border-radius: 12px; }
-.order-index { color: #e8c75e; font: 27px Georgia, serif; width: 28px; flex-shrink: 0; text-align: center; }
+.order-index { color: var(--mq-gold, #e8c775); font: 27px Georgia, serif; width: 28px; flex-shrink: 0; text-align: center; }
 .order-challenge li strong { font-size: 15px; }
 .order-challenge li small { display: block; color: #b2c1d5; font-size: 12px; margin-top: 7px; }
 .order-controls { display: flex; gap: 5px; margin-left: auto; }

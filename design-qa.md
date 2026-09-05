@@ -279,3 +279,13 @@ final result: passed (local opt-in flow and simulated-pose visual QA; physical t
 - No browser runtime exceptions or console errors in these checks. The source FBX emits the known four-skin-weights import warning; the loader handles the conversion.
 - Character snapshots: `docs/images/scan-samuel-result.png` and `docs/images/scan-samuel-page-anchor.png`. Both use a simulated camera/reference image; the Page anchor pose is fixture-injected. Mobile device performance and real image tracking remain separate physical-device checks.
 - Visual check: PASS for the scoped model replacement, scale, figure visibility and surrounding actions. No new interaction targets were added.
+
+## Unified interface system / 2026-09-05
+
+Design mode: preserve and modernize. Existing navy/gold identity, English copy, page hierarchy and historical imagery retained. Visual variance 4/10, motion 2/10, density 5/10. Product Design context review and taste-skill audit informed the evolution; marketing-only rules were not applied to learning metrics or AR.
+
+- Shared tokens, softer navigation selection, consistent control/panel shapes, sans interface headings and editorial historical titles. Library now uses an unboxed heading and image-led active era.
+- Checked Library, Explore, Timeline, People, Evidence, Memory Check, Challenges and Progress at 1440x960, 390x844 and 844x390. No document horizontal overflow, no Vite error overlay, no runtime exceptions, bottom navigation within viewport. Reviewed desktop contact sheet and mobile detail captures.
+- Simulated camera welcome, acquisition, result and OCR-error states checked in both phone orientations. Acquisition continues to hide navigation; outcomes restore it. Real device camera/XR verification remains pending.
+- 54 application tests and 4 Sites tests PASS; production build PASS, existing large-chunk warning remains. No feature logic, historical data, audio or 3D assets changed.
+- Visual result: PASS for scoped shared-theme modernization. Validation was performed locally before release. Check GitHub and Vercel for the current release status.

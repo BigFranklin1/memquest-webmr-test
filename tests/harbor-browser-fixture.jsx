@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { HarborScene } from "../src/HarborScene.jsx";
 import "../src/styles.css";
 import "../src/archive-refresh.css";
+import "../src/interface-theme.css";
 
 function HarborFixture() {
   const [discovered, setDiscovered] = useState([]);

@@ -5,6 +5,7 @@ import { PeopleView } from "../src/PeopleView.jsx";
 import { initialLibraryState, libraryReducer } from "../src/libraryState.js";
 import "../src/styles.css";
 import "../src/archive-refresh.css";
+import "../src/interface-theme.css";
 
 const dossierOnly = new URLSearchParams(location.search).get("mode") === "dossier";
 function Fixture() {

@@ -1,0 +1,247 @@
+/* MemQuest interface system. Historical imagery is editorial; chrome is quiet.
+   Keep layout/visibility ownership in each feature, especially camera capture. */
+:root {
+  --mq-bg: #09121e;
+  --mq-surface: #121f30;
+  --mq-raised: #1b2a3d;
+  --mq-glass: rgba(17, 30, 46, .76);
+  --mq-border: rgba(175, 195, 216, .17);
+  --mq-text: #edf1f5;
+  --mq-muted: #bac5d2;
+  --mq-gold: #e8c775;
+  --mq-gold-soft: rgba(232, 199, 117, .12);
+  --mq-radius: 18px;
+  --mq-control-radius: 12px;
+  --mq-ui: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+  --mq-editorial: Georgia, "Times New Roman", serif;
+  font-family: var(--mq-ui);
+  color: var(--mq-text);
+  background: var(--mq-bg);
+  color-scheme: dark;
+}
+
+html, .experience-app, .experience-app.has-global-workspace { background: var(--mq-bg); }
+button, select, input { font-family: var(--mq-ui); }
+button { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, select:focus-visible, summary:focus-visible, a:focus-visible {
+  outline: 2px solid var(--mq-gold);
+  outline-offset: 4px;
+}
+::selection { color: var(--mq-text); background: #46556a; }
+.library-shell, .global-workspace, .revolution-stage.is-content-section {
+  background: radial-gradient(ellipse at 85% 0%, rgba(63, 92, 119, .16), transparent 55%), var(--mq-bg);
+  color: var(--mq-text);
+}
+.unit-view { background: transparent; color: var(--mq-text); }
+
+/* Navigation stays recognizable across camera, collection, and learning. */
+.scan-bottom-nav, .bottom-nav {
+  background: rgba(18, 31, 48, .94);
+  border: 1px solid var(--mq-border);
+  box-shadow: 0 8px 28px rgba(0, 5, 13, .22);
+  border-radius: 22px;
+  backdrop-filter: blur(20px);
+}
+.scan-bottom-nav button, .bottom-nav button {
+  border-radius: 15px;
+  color: var(--mq-muted);
+  font-weight: 600;
+  letter-spacing: .01em;
+}
+.scan-bottom-nav button.is-active, .bottom-nav button.is-active {
+  color: var(--mq-gold);
+  background: var(--mq-gold-soft);
+  box-shadow: inset 0 0 0 1px rgba(232, 199, 117, .22);
+}
+.scan-brand, .journey-brand, .revolution-brand, .harbor-brand { color: var(--mq-gold); }
+.scan-brand-mark, .journey-brand > span, .revolution-brand span {
+  color: var(--mq-gold);
+  background: var(--mq-gold-soft);
+  border: 1px solid rgba(232, 199, 117, .22);
+  border-radius: 12px;
+  box-shadow: none;
+}
+.journey-topbar, .scan-app-header { border-color: var(--mq-border); }
+.journey-topbar { min-height: 76px; }
+.revolution-sidebar { background: rgba(9, 18, 30, .98); border-right: 1px solid var(--mq-border); }
+.revolution-sidebar nav button { color: var(--mq-muted); font-size: .88rem; font-weight: 550; border-radius: 12px; }
+.revolution-sidebar nav button.is-active, .revolution-mobile-tabs button.is-active {
+  color: var(--mq-gold); background: var(--mq-gold-soft); box-shadow: inset 0 0 0 1px rgba(232, 199, 117, .2);
+}
+.revolution-back { color: var(--mq-muted); }
+.revolution-mobile-header, .revolution-mobile-tabs { border-color: var(--mq-border); }
+
+/* One control family. Selected answers retain their semantic success/error colors. */
+.primary-action, .scan-primary, .unit-primary-button, .journey-button,
+.library-era-actions button:not(.library-icon-button), .revolution-enter, .people-map-expand {
+  color: #252113; background: var(--mq-gold); border-color: var(--mq-gold);
+  border-radius: var(--mq-control-radius); box-shadow: none; font-weight: 650;
+}
+.scan-secondary, .unit-secondary-button, .journey-button.is-secondary,
+.library-era-actions .library-icon-button, .revolution-actions button,
+.revolution-actions button:last-child, .scan-back {
+  color: var(--mq-text); background: rgba(27, 42, 61, .8); border: 1px solid var(--mq-border);
+  border-radius: var(--mq-control-radius); box-shadow: none;
+}
+.unit-mode-switch, .unit-evidence-filters button, .people-switcher button, .journey-filters select {
+  border-color: var(--mq-border); background: rgba(18, 31, 48, .8); border-radius: 12px;
+}
+.unit-mode-switch button.is-active, .unit-evidence-filters button.is-active, .people-switcher button.is-active {
+  color: var(--mq-gold); background: var(--mq-gold-soft); border-color: rgba(232, 199, 117, .36); box-shadow: none;
+}
+.unit-count-pill { color: var(--mq-muted); border-color: var(--mq-border); background: transparent; }
+
+/* Editorial titles for history. App-level navigation and metrics use UI type. */
+.library-hero h1, .journey-intro h1, .global-workspace h2,
+.unit-section-title h1, .guide-header h1 {
+  font-family: var(--mq-ui); font-weight: 550; letter-spacing: -.045em; line-height: 1.12;
+  color: var(--mq-text);
+}
+.journey-intro h1 { font-size: clamp(34px, 4vw, 52px); }
+.journey-intro p, .library-hero p, .unit-section-title p { color: var(--mq-muted); line-height: 1.6; }
+.unit-section-title h1 { font-size: clamp(1.8rem, 2.8vw, 2.8rem); }
+.unit-section-title p { font-size: .85rem; }
+.unit-section-icon, .instruction-icon { color: var(--mq-gold); background: var(--mq-gold-soft); box-shadow: none; border-radius: 12px; }
+.unit-section-title small, .journey-eyebrow, .library-hero-kicker, .people-archive-heading > span {
+  color: var(--mq-gold); letter-spacing: .1em; font-weight: 650;
+}
+.journey-stats strong { font-family: var(--mq-ui); font-weight: 450; color: var(--mq-text); font-variant-numeric: tabular-nums; }
+
+/* Collection entrance: remove nested hero panel, give the real unit an image. */
+.library-home-content { margin-top: clamp(30px, 5vh, 58px); }
+.library-hero {
+  width: 100%; margin: 0; padding: 0 0 30px; text-align: left;
+  border: 0; border-bottom: 1px solid var(--mq-border); border-radius: 0;
+  background: transparent; box-shadow: none; backdrop-filter: none;
+}
+.library-hero h1 { max-width: 18ch; font-size: clamp(2rem, 4vw, 3.5rem); font-weight: 550; }
+.library-hero p { margin-top: 16px; }
+.library-title-pill {
+  min-height: 46px; padding: 0 16px; border-radius: 14px;
+  color: var(--mq-text); font: 600 1rem var(--mq-ui);
+  background: rgba(18, 31, 48, .72); border-color: var(--mq-border);
+}
+.library-title-pill svg { color: var(--mq-gold); }
+.library-page-header > button { width: 46px; height: 46px; border-color: var(--mq-border); background: var(--mq-surface); color: var(--mq-gold); }
+.library-era-grid { margin-top: 30px; gap: 18px; }
+.library-era-card { padding: 24px; border-radius: var(--mq-radius); background: rgba(18, 31, 48, .66); border-color: var(--mq-border); min-height: 348px; }
+.library-era-card.is-active {
+  isolation: isolate; background: #172638; border-color: rgba(232, 199, 117, .36); box-shadow: none;
+}
+.library-era-card.is-active::before {
+  content: ""; position: absolute; z-index: -1; inset: 0;
+  background: linear-gradient(180deg, rgba(9, 18, 30, .2), rgba(9, 18, 30, .85) 50%, #101d2d 95%), url('./assets/timeline/boston-tea-party-1773.webp') center / cover;
+  opacity: .9; pointer-events: none;
+}
+.library-era-card.is-active:hover { border-color: var(--mq-gold); box-shadow: 0 14px 32px rgba(0, 6, 16, .18); }
+.library-era-title-row { grid-template-columns: minmax(0, 1fr) auto; gap: 12px; }
+.library-era-title-row h2 { font-size: clamp(1.1rem, 1.5vw, 1.45rem); font-weight: 550; }
+.library-era-card.is-active h2 { color: var(--mq-text); font-weight: 500; font-size: clamp(1.65rem, 2.3vw, 2.2rem); line-height: 1.08; }
+.library-era-orbit { width: 44px; height: 44px; background: rgba(18, 31, 48, .55); border-color: rgba(232, 199, 117, .38); color: var(--mq-gold); box-shadow: none; }
+.library-era-card > small { color: var(--mq-muted); line-height: 1.65; font-family: var(--mq-ui); }
+.library-era-preview { margin-top: auto; color: #a0afc1; }
+.library-era-card:not(.is-active) { border-style: dashed; }
+
+/* Common panel elevation, without flattening the image-led card compositions. */
+.journey-panel, .people-panel, .unit-detail-card, .unit-evidence-detail,
+.unit-memory-intro, .unit-memory-result, .unit-cause-explanation, .unit-question-card {
+  border-color: var(--mq-border); border-radius: var(--mq-radius);
+  background-color: var(--mq-surface); box-shadow: none;
+}
+.challenge-feature, .challenge-detail-header, .challenge-card, .unit-timeline-card,
+.unit-evidence-grid > button { border-radius: var(--mq-radius); border-color: var(--mq-border); }
+.challenge-card { background: var(--mq-surface); }
+.challenge-card-copy h3 { font: 550 1.15rem/1.4 var(--mq-ui); color: var(--mq-text); }
+.challenge-card-copy p { font-size: 13px; }
+.challenge-card-image { filter: saturate(.72); }
+.challenge-feature-copy { padding: 30px; }
+.journey-panel { padding: 24px; }
+.journey-panel.progress-unit { padding: 0; }
+.skill-panel { background: rgba(18, 31, 48, .5); }
+.journey-stats { padding: 26px 0; border-color: var(--mq-border); }
+.achievement { background: rgba(18, 31, 48, .6); }
+.journey-filters select { min-height: 44px; font-size: 13px; }
+.unit-timeline-card.is-active { border-color: var(--mq-gold); box-shadow: inset 0 0 0 1px rgba(232, 199, 117, .16); }
+.unit-timeline-card > .unit-timeline-date { color: var(--mq-gold); border-radius: 10px; }
+.timeline-event-detail { padding: 16px; }
+.unit-detail-copy p { color: var(--mq-muted); line-height: 1.65; }
+.unit-view.people-dossier { background: #0a1426; }
+.people-panel { background: rgba(18, 31, 48, .8); }
+.people-panel h2 { font: 550 clamp(1.15rem, 1.65vw, 1.55rem)/1.3 var(--mq-ui); }
+.people-panel-heading > small { display: none; }
+.people-role-list p, .people-event-list p, .people-hero-introduction { color: var(--mq-muted); }
+.people-role-list h3, .people-event-list h3 { font-weight: 550; }
+.people-hero-subtitle, .people-panel h2 svg { color: var(--mq-gold); }
+.people-network-map { border-color: var(--mq-border); background: rgba(9, 18, 30, .66); }
+.people-network-center .people-portrait { box-shadow: 0 0 0 5px var(--mq-gold-soft); border-color: var(--mq-gold); }
+
+/* Camera/VR surfaces stay translucent; never change capture visibility or hit targets. */
+.guide-panel { background: rgba(18, 31, 48, .69); border-color: var(--mq-border); border-radius: 24px; box-shadow: 0 20px 60px rgba(0, 5, 13, .22); }
+.subtitle { font-weight: 400; color: var(--mq-muted); }
+.instruction-card { background: rgba(180, 198, 220, .055); border-color: rgba(180, 198, 220, .1); border-radius: 14px; }
+.instruction-card h2 { font-weight: 550; }
+.instruction-card p { color: var(--mq-muted); font-weight: 400; }
+.revolution-title-card, .revolution-explore-card { border-radius: var(--mq-radius); border-color: var(--mq-border); background: rgba(12, 24, 39, .72); box-shadow: 0 12px 30px rgba(0, 5, 13, .18); }
+.revolution-explore-card > strong { color: var(--mq-text); }
+.revolution-explore-card p { color: var(--mq-muted); }
+.scan-app-header { background: rgba(9, 18, 30, .68); }
+.toast { background: var(--mq-raised); color: var(--mq-text); border-color: var(--mq-border); border-radius: 12px; }
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .scan-bottom-nav button, .bottom-nav button, .journey-button, .unit-primary-button,
+  .unit-secondary-button, .people-switcher button { transition: background 160ms ease, border-color 160ms ease, color 160ms ease; }
+  .scan-bottom-nav button:hover:not(.is-active), .bottom-nav button:hover:not(.is-active) { background: rgba(180, 198, 220, .08); color: var(--mq-text); }
+}
+@media (max-width: 900px) {
+  .library-home-content { margin-top: 28px; }
+  .library-hero { width: 100%; padding: 0 0 24px; }
+  .library-era-card { min-height: 300px; padding: 22px; }
+  .library-era-grid { gap: 14px; margin-top: 24px; }
+  .unit-section-title p { font-size: .8rem; }
+}
+@media (max-width: 560px) {
+  .scan-bottom-nav { border-radius: 20px; }
+  .scan-bottom-nav button { border-radius: 13px; padding-inline: 5px; }
+  .library-hero h1 { font-size: 2.15rem; max-width: 17ch; }
+  .library-hero p { font-size: .9rem; }
+  .library-title-pill { font-size: .95rem; }
+  .journey-intro h1 { font-size: 34px; }
+  .journey-content { padding-top: 24px; }
+  .journey-panel { padding: 20px; }
+  .challenge-feature-copy { padding: 24px; }
+  .unit-section-title h1 { font-size: 1.75rem; }
+  .people-panel h2 { font-size: 1.2rem; }
+}
+@media (max-height: 620px) and (orientation: landscape) {
+  .library-home-content { margin-top: 18px; }
+  .library-hero { padding-bottom: 16px; }
+  .library-hero h1 { font-size: 1.8rem; max-width: 28ch; }
+  .library-hero p { font-size: .8rem; margin-top: 8px; }
+  .library-era-grid { margin-top: 18px; }
+  .library-era-card { min-height: 250px; padding: 18px; }
+  .library-era-card.is-active h2 { font-size: 1.5rem; }
+  .library-era-orbit { width: 36px; height: 36px; }
+  .unit-section-title h1 { font-size: 1.5rem; }
+  .unit-section-title p { font-size: .7rem; }
+  .scan-bottom-nav { border-radius: 18px; }
+  .scan-bottom-nav button { border-radius: 12px; }
+  .journey-topbar { min-height: 62px; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .guide-panel, .scan-bottom-nav, .bottom-nav, .revolution-title-card,
+  .revolution-explore-card, .scan-app-header { background: var(--mq-surface); backdrop-filter: none; }
+}
+
+/* Small immersive panels share material tokens, not document-page opacity. */
+.subject-card, .dialogue-character, .dialogue-panel, .timeline-layout,
+.scan-error, .scan-ar-record, .scan-ar-option, .scan-anchor-guide,
+.harbor-objective, .harbor-clue-panel {
+  border-color: var(--mq-border); border-radius: var(--mq-radius);
+  background: var(--mq-glass); box-shadow: 0 12px 32px rgba(0, 5, 13, .2);
+}
+.scan-ar-option > span { color: var(--mq-gold); background: var(--mq-gold-soft); }
+.harbor-topbar { background: rgba(9, 18, 30, .8); border-color: var(--mq-border); }
+.harbor-vr-brand > span { color: var(--mq-gold); background: var(--mq-gold-soft); border: 1px solid var(--mq-border); border-radius: 12px; }
+.harbor-control, .harbor-exit, .harbor-clue-actions button { border-radius: var(--mq-control-radius); }
+.harbor-control.is-primary, .harbor-clue-actions button.is-primary { color: #252113; background: var(--mq-gold); box-shadow: none; }
+.harbor-clue-panel p, .subject-summary, .dialogue-help { color: var(--mq-muted); }

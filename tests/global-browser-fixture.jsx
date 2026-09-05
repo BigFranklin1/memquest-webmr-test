@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { App } from "../src/App.jsx";
 import "../src/styles.css";
 import "../src/archive-refresh.css";
+import "../src/interface-theme.css";
 
 // This fixture tests the real App without creating fake achievements in the user's save.
 const records = new Map();
