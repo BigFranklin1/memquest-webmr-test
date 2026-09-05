@@ -289,3 +289,21 @@ Design mode: preserve and modernize. Existing navy/gold identity, English copy, 
 - Simulated camera welcome, acquisition, result and OCR-error states checked in both phone orientations. Acquisition continues to hide navigation; outcomes restore it. Real device camera/XR verification remains pending.
 - 54 application tests and 4 Sites tests PASS; production build PASS, existing large-chunk warning remains. No feature logic, historical data, audio or 3D assets changed.
 - Visual result: PASS for scoped shared-theme modernization. Validation was performed locally before release. Check GitHub and Vercel for the current release status.
+
+## Harbor environment refinement / 2026-09-05
+
+- Retained the procedural CubeTexture skybox, layered fog, four original clues, hit proxies and nearby explanatory cards. No new historical targets or external assets.
+- Added curved ship rails and deck, hatch coaming, capstan and ratlines; warehouse window casings/mullions/shutters, masonry, quay blocks and lateral walkways; narrow wharf planks, nail heads, crate joinery and candle lantern detail. Water now has deterministic local normal texture, environment reflections and updated vertex normals.
+- Static opaque scenery batches by material/shadow flags/spatial cell. Water, transparent meshes, instances and hit proxies excluded. Same 1200x800 initial view: 544 draw calls / 29,006 triangles before, about 295 / 53,758 after. These are render counters, not physical-device FPS measurements.
+- Three added unit tests: world-space bounds and excluded-object preservation; deterministic texture/data color-space; no new hotspot ids. All 57 application tests and 4 Sites tests PASS; production build PASS with existing large-chunk warning.
+- Browser interaction: 12 of 12 clue selections and Why-it-matters expansions PASS at 1200x800, 844x390, 390x844. Expanded cards within viewport; portrait drag never selected a clue; all views counted exactly 4/4. No runtime exceptions. Reviewed desktop and landscape captures.
+- Reduced-motion preference freezes scene effects; wave drift is time-based, not frame-dependent. Real mobile XR/motion/performance remains pending.
+- Visual QA: PASS for scoped environment refinement. Local version only.
+
+## Mobile-budget Harbor water / 2026-09-05
+
+- Visual QA: PASS for scoped calm night-water treatment. Replaced overlapping reflection strips and CPU vertex/normal updates with one opaque shader surface. Two mipmapped, counter-drifting normal samples and analytic slow swells; distance-attenuated slope contrast, skybox reflection and restrained approximate lamp/moon glints. No SSR, refraction target, transparent water overdraw or water shadow pass.
+- Mobile budget: coarse-pointer or reported <=4 GB device memory selects 24×20 subdivisions (525 vertices), DPR capped at 1.25. Desktop selects 36×28 (1,073 vertices), DPR capped at 1.6. Reduced-motion time stays zero; textures remain owned and disposed by the scene.
+- Browser: inspected 1200×800 and 844×390 captures, including touch/DPR 3 emulation. Confirmed mobile DPR 1.25 and 525 vertices, no horizontal overflow and no console/shader/runtime errors. Same desktop initial-view draw calls approximately 295 before / 250 after (not an FPS measurement). Side-view mobile counter is not directly comparable due to frustum changes.
+- 60 application tests + 4 Sites tests PASS. Production build PASS (existing large chunk warning retained). All four clue selections and detail expansions at 1200×800, 844×390 and 390×844 PASS; drag does not select; cards stay within viewport. Original clue set unchanged.
+- Screenshot: docs/images/harbor-mobile-water.jpg is a desktop-rendered mobile emulation, not physical-device evidence. Android/iPhone heat, frame timing and immersive-XR remain unverified. Local only; no deployment in this task.

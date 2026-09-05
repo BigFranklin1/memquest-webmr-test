@@ -54,7 +54,9 @@ try {
         "tests/scan.test.mjs",
         "tests/ocrScanner.test.mjs",
         "tests/library.test.mjs",
-        "tests/learning.test.mjs"
+        "tests/learning.test.mjs",
+        "tests/harborVisuals.test.mjs",
+        "tests/harborWater.test.mjs"
       ) + $TaskArguments
     }
     "build" {

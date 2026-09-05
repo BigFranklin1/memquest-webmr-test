@@ -15,6 +15,8 @@ import {
   X,
 } from "@phosphor-icons/react";
 import * as THREE from "three";
+import { createHarborWater, harborRenderBudget } from "./harborWater.js";
+import { createMasonryTexture, createWaterNormalTexture, detailWarehouse, detailShip, dressWaterfront, batchStaticHarbor } from "./harborVisuals.js";
 import dartmouthStory from "./assets/voice/clue-dartmouth.wav";
 import hatchetStory from "./assets/voice/clue-hatchet.wav";
 import lanternStory from "./assets/voice/clue-lantern.wav";
@@ -208,6 +210,9 @@ function createHullGeometry() {
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
   geometry.setIndex(indices);
+  const hullUVs = [];
+  for (let i = 0; i < positions.length; i += 3) hullUVs.push(positions[i + 2] * 0.35, positions[i + 1] * 0.75);
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(hullUVs, 2));
   geometry.computeVertexNormals();
   geometry.computeBoundingSphere();
   return geometry;
@@ -236,6 +241,20 @@ function createCargoCrate(materials, scale = 1) {
     const brace = new THREE.Mesh(new THREE.BoxGeometry(1.16 * scale, 0.055 * scale, 0.055 * scale), materials.crateTrim);
     brace.position.set(0, y * scale, 0.5 * scale);
     group.add(brace);
+  }
+  for (const side of [-1, 1]) {
+    const runner = new THREE.Mesh(new THREE.BoxGeometry(0.065 * scale, 0.055 * scale, 0.98 * scale), materials.crateTrim);
+    runner.position.set(side * 0.59 * scale, 0.76 * scale, 0);
+    group.add(runner);
+    const diagonal = new THREE.Mesh(new THREE.BoxGeometry(1.27 * scale, 0.055 * scale, 0.045 * scale), materials.crateTrim);
+    diagonal.position.set(0, 0.42 * scale, side * 0.5 * scale);
+    diagonal.rotation.z = 0.49;
+    group.add(diagonal);
+  }
+  for (let i = 0; i < 5; i++) {
+    const seam = new THREE.Mesh(new THREE.BoxGeometry(0.014 * scale, 0.012 * scale, 0.91 * scale), materials.timber);
+    seam.position.set((-0.44 + i * 0.22) * scale, 0.846 * scale, 0);
+    group.add(seam);
   }
   return group;
 }
@@ -425,6 +444,7 @@ function createWarehouse(materials, width, height, depth, windowPattern = 0) {
   chimneyCap.position.set(chimney.position.x, chimney.position.y + chimneyHeight / 2 + 0.035, chimney.position.z);
   chimneyCap.castShadow = true;
   building.add(chimneyCap);
+  detailWarehouse(building, materials, width, height, depth, windowPattern);
   return building;
 }
 
@@ -476,6 +496,13 @@ function createLantern(materials) {
   });
   const glow = new THREE.Mesh(new THREE.SphereGeometry(0.16, 18, 12), glass);
   glow.position.y = 0.48;
+  glow.scale.set(0.3, 0.62, 0.3);
+  const candle = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.27, 10), materials.canvas);
+  candle.position.y = 0.27;
+  group.add(candle);
+  const chimney = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.16, 0.13, 8), frame);
+  chimney.position.y = 1.1;
+  group.add(chimney);
   group.add(glow);
 
   const base = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.38, 0.12, 10), frame);
@@ -498,8 +525,7 @@ function createLantern(materials) {
     new THREE.TorusGeometry(0.27, 0.035, 8, 20, Math.PI),
     frame,
   );
-  handle.position.y = 1.12;
-  handle.rotation.z = Math.PI;
+  handle.position.y = 1.13;
   group.add(handle);
 
   const light = new THREE.PointLight(0xffa83e, 5.4, 5.5, 2);
@@ -605,10 +631,6 @@ function createShip(materials) {
   hull.receiveShadow = true;
   ship.add(hull);
 
-  const deck = new THREE.Mesh(new THREE.BoxGeometry(2.95, 0.16, 6.05), materials.deck);
-  deck.position.set(0, 0.62, 0.05);
-  deck.receiveShadow = true;
-  ship.add(deck);
 
   const sternCabin = new THREE.Mesh(new THREE.BoxGeometry(2.45, 0.72, 1.22), materials.hullTrim);
   sternCabin.position.set(0, 1, 2.45);
@@ -618,20 +640,6 @@ function createShip(materials) {
     const sternWindow = new THREE.Mesh(new THREE.PlaneGeometry(0.32, 0.24), materials.windowWarm);
     sternWindow.position.set(x, 1.08, 3.066);
     ship.add(sternWindow);
-  }
-
-  for (const side of [-1, 1]) {
-    const hullStripe = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.1, 5.85), materials.mast);
-    hullStripe.position.set(side * 1.48, 0.35, 0.1);
-    ship.add(hullStripe);
-    const rail = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.1, 6.25), materials.mast);
-    rail.position.set(side * 1.48, 1.14, 0.04);
-    ship.add(rail);
-    for (let z = -2.8; z <= 2.8; z += 0.7) {
-      const stanchion = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.024, 0.52, 6), materials.iron);
-      stanchion.position.set(side * 1.48, 0.91, z);
-      ship.add(stanchion);
-    }
   }
 
   const bowsprit = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.075, 3.2, 8), materials.mast);
@@ -680,6 +688,7 @@ function createShip(materials) {
     materials.rigging,
   );
   ship.add(longRigging);
+  detailShip(ship, materials);
   return ship;
 }
 
@@ -736,7 +745,12 @@ function createScene({ mount, onSelect, onModeChange, onMotionReady }) {
   camera.rotation.order = "YXZ";
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6));
+  const renderBudget = harborRenderBudget({
+    coarsePointer: window.matchMedia("(pointer: coarse)").matches,
+    deviceMemory: navigator.deviceMemory ?? 8,
+    pixelRatio: window.devicePixelRatio || 1,
+  });
+  renderer.setPixelRatio(renderBudget.pixelRatio);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.18;
@@ -754,11 +768,15 @@ function createScene({ mount, onSelect, onModeChange, onMotionReady }) {
   const skyboxTexture = createSkyboxTexture();
   const fogTexture = createFogTexture();
   scene.background = skyboxTexture;
-  const textures = [woodTexture, wetWoodTexture, hullTexture, skyboxTexture, fogTexture];
+  scene.environment = skyboxTexture;
+  scene.environmentIntensity = 0.65;
+  const masonryTexture = createMasonryTexture();
+  const waterNormalTexture = createWaterNormalTexture();
+  const textures = [woodTexture, wetWoodTexture, hullTexture, skyboxTexture, fogTexture, masonryTexture, waterNormalTexture];
   const materials = {
-    wood: new THREE.MeshStandardMaterial({ map: woodTexture, color: 0xb49b82, roughness: 0.9, metalness: 0.02 }),
+    wood: new THREE.MeshStandardMaterial({ map: woodTexture, bumpMap: woodTexture, bumpScale: 0.025, color: 0xa5a095, roughness: 0.78, metalness: 0.02 }),
     deck: new THREE.MeshStandardMaterial({ map: woodTexture, color: 0xd0b18d, roughness: 0.84, metalness: 0.01 }),
-    wetWood: new THREE.MeshStandardMaterial({ map: wetWoodTexture, color: 0x91857b, roughness: 0.52, metalness: 0.16 }),
+    wetWood: new THREE.MeshStandardMaterial({ map: wetWoodTexture, bumpMap: wetWoodTexture, bumpScale: 0.018, color: 0x8b9ba2, roughness: 0.38, metalness: 0.08 }),
     barrel: new THREE.MeshStandardMaterial({ map: woodTexture, color: 0xb88f6b, roughness: 0.8, metalness: 0.03 }),
     iron: new THREE.MeshStandardMaterial({ color: 0x14181c, roughness: 0.47, metalness: 0.72 }),
     hull: new THREE.MeshStandardMaterial({ map: hullTexture, color: 0x8c99a3, roughness: 0.67, metalness: 0.07 }),
@@ -772,22 +790,22 @@ function createScene({ mount, onSelect, onModeChange, onMotionReady }) {
     sack: new THREE.MeshStandardMaterial({ color: 0x776b57, roughness: 1, metalness: 0 }),
     distantCanvas: new THREE.MeshStandardMaterial({ color: 0x4b5964, roughness: 1, metalness: 0, side: THREE.DoubleSide }),
     rigging: new THREE.LineBasicMaterial({ color: 0x76674e, transparent: true, opacity: 0.72 }),
-    warehouse: new THREE.MeshStandardMaterial({ color: 0x333b42, emissive: 0x05080b, roughness: 0.96, metalness: 0 }),
-    warehouseWarm: new THREE.MeshStandardMaterial({ color: 0x4a3c33, emissive: 0x090604, roughness: 0.98, metalness: 0 }),
+    warehouse: new THREE.MeshStandardMaterial({ map: masonryTexture, color: 0x99a2aa, emissive: 0x05080b, roughness: 0.96, metalness: 0 }),
+    warehouseWarm: new THREE.MeshStandardMaterial({ map: masonryTexture, color: 0xbc9c81, emissive: 0x090604, roughness: 0.98, metalness: 0 }),
     roof: new THREE.MeshStandardMaterial({ color: 0x22272b, roughness: 0.94, metalness: 0.02 }),
     brick: new THREE.MeshStandardMaterial({ color: 0x3f2d27, roughness: 0.98, metalness: 0 }),
     timber: new THREE.MeshStandardMaterial({ color: 0x201c19, roughness: 0.92, metalness: 0 }),
     door: new THREE.MeshStandardMaterial({ color: 0x181511, roughness: 0.94, metalness: 0 }),
-    stone: new THREE.MeshStandardMaterial({ color: 0x333a40, roughness: 0.92, metalness: 0.05 }),
+    stone: new THREE.MeshStandardMaterial({ map: masonryTexture, color: 0x778796, roughness: 0.92, metalness: 0.05 }),
     puddle: new THREE.MeshPhysicalMaterial({ color: 0x20394b, roughness: 0.16, metalness: 0.42, transparent: true, opacity: 0.52, depthWrite: false }),
     windowWarm: new THREE.MeshBasicMaterial({ color: 0xf2a643, toneMapped: false }),
     windowDim: new THREE.MeshBasicMaterial({ color: 0x554b3c, toneMapped: false }),
   };
 
-  scene.add(new THREE.HemisphereLight(0x91abc7, 0x0d0b08, 1.48));
-  scene.add(new THREE.AmbientLight(0x40566d, 0.58));
+  scene.add(new THREE.HemisphereLight(0x91abc7, 0x242019, 2.05));
+  scene.add(new THREE.AmbientLight(0x40566d, 0.4));
   const moon = new THREE.DirectionalLight(0xa9c4df, 2.5);
-  moon.position.set(-5, 10, 5);
+  moon.position.set(-8, 12, -6);
   moon.castShadow = true;
   moon.shadow.mapSize.set(1024, 1024);
   moon.shadow.camera.left = -11;
@@ -798,22 +816,22 @@ function createScene({ mount, onSelect, onModeChange, onMotionReady }) {
   moon.shadow.camera.far = 35;
   moon.shadow.normalBias = 0.035;
   scene.add(moon);
-  const coolFill = new THREE.DirectionalLight(0x58789c, 1.48);
+  const coolFill = new THREE.DirectionalLight(0x88a6c5, 1.65);
   coolFill.position.set(4, 5, 7);
   scene.add(coolFill);
 
   const dryPlanks = [];
   const wetPlanks = [];
-  for (let row = 0; row < 16; row += 1) {
-    for (let col = -4; col <= 4; col += 1) {
+  for (let row = 0; row < 84; row += 1) {
+    for (let col = 0; col < 2; col += 1) {
       const transform = new THREE.Object3D();
-      transform.position.set(col * 0.93, -0.08, 5.4 - row * 1.43);
+      transform.position.set(col === 0 ? -2.085 : 2.085, -0.08 + Math.sin(row * 4.7) * 0.004, 6 - row * 0.28);
       transform.rotation.y = ((row * 17 + col * 13) % 5 - 2) * 0.0025;
       transform.updateMatrix();
       (row % 3 === 0 ? wetPlanks : dryPlanks).push(transform.matrix.clone());
     }
   }
-  const plankGeometry = new THREE.BoxGeometry(0.9, 0.12, 1.45);
+  const plankGeometry = new THREE.BoxGeometry(4.15, 0.12, 0.265);
   for (const [matrices, material] of [[dryPlanks, materials.wood], [wetPlanks, materials.wetWood]]) {
     const planks = new THREE.InstancedMesh(plankGeometry, material, matrices.length);
     matrices.forEach((matrix, index) => planks.setMatrixAt(index, matrix));
@@ -895,45 +913,11 @@ function createScene({ mount, onSelect, onModeChange, onMotionReady }) {
     scene.add(coil);
   }
 
-  const water = new THREE.Mesh(
-    new THREE.PlaneGeometry(70, 65, 38, 30),
-    new THREE.MeshStandardMaterial({
-      color: 0x0b2234,
-      roughness: 0.3,
-      metalness: 0.48,
-      transparent: true,
-      opacity: 0.96,
-    }),
-  );
-  water.rotation.x = -Math.PI / 2;
-  water.position.set(0, -0.5, -19);
-  water.receiveShadow = true;
-  const waterPositions = water.geometry.attributes.position;
-  const waterBase = Float32Array.from(waterPositions.array);
+  const waterSurface = createHarborWater({
+    normalTexture: waterNormalTexture, skyTexture: skyboxTexture, segments: renderBudget.segments,
+  });
+  const water = waterSurface.mesh;
   scene.add(water);
-
-  const waveMaterial = new THREE.MeshBasicMaterial({ color: 0x7b9ab3, transparent: true, opacity: 0.2, depthWrite: false });
-  const waveStrips = [];
-  for (let i = 0; i < 34; i += 1) {
-    const strip = new THREE.Mesh(new THREE.PlaneGeometry(0.8 + (i % 5) * 0.62, 0.014), waveMaterial);
-    strip.rotation.x = -Math.PI / 2;
-    strip.position.set(((i * 37) % 19) - 9, -0.47, -4 - ((i * 23) % 30));
-    strip.rotation.z = ((i % 3) - 1) * 0.08;
-    strip.userData.phase = i * 0.41;
-    scene.add(strip);
-    waveStrips.push(strip);
-  }
-
-  const reflectionMaterial = new THREE.MeshBasicMaterial({ color: 0xd5b36a, transparent: true, opacity: 0.1, depthWrite: false });
-  for (let i = 0; i < 12; i += 1) {
-    const reflection = new THREE.Mesh(new THREE.PlaneGeometry(0.24 + i * 0.045, 1.2 + i * 0.26), reflectionMaterial);
-    reflection.rotation.x = -Math.PI / 2;
-    reflection.rotation.z = -0.05;
-    reflection.position.set(-5.8 + Math.sin(i * 2.2) * 0.34, -0.465, -10 - i * 1.3);
-    reflection.userData.phase = i * 0.7;
-    scene.add(reflection);
-    waveStrips.push(reflection);
-  }
 
   const clickTargets = [];
   const markers = [];
@@ -1066,7 +1050,7 @@ function createScene({ mount, onSelect, onModeChange, onMotionReady }) {
   fogGeometry.setAttribute("position", new THREE.Float32BufferAttribute(fogPositions, 3));
   const fogPoints = new THREE.Points(
     fogGeometry,
-    new THREE.PointsMaterial({ color: 0x8ba0b0, size: 0.045, transparent: true, opacity: 0.19, depthWrite: false }),
+    new THREE.PointsMaterial({ color: 0x8ba0b0, size: 0.024, transparent: true, opacity: 0.06, depthWrite: false }),
   );
   scene.add(fogPoints);
 
@@ -1110,6 +1094,9 @@ function createScene({ mount, onSelect, onModeChange, onMotionReady }) {
     scene.add(markerProxy);
     clickTargets.push(markerProxy);
   });
+
+  dressWaterfront(scene, materials);
+  const savedDrawCalls = batchStaticHarbor(scene, new Set([water]));
 
   const raycaster = new THREE.Raycaster();
   raycaster.far = 45;
@@ -1304,12 +1291,13 @@ function createScene({ mount, onSelect, onModeChange, onMotionReady }) {
   const motionEuler = new THREE.Euler();
   const q0 = new THREE.Quaternion();
   const q1 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5));
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const timer = new THREE.Timer();
   timer.connect(document);
 
   renderer.setAnimationLoop((timestamp) => {
     timer.update(timestamp);
-    const time = timer.getElapsed();
+    const time = reducedMotion.matches ? 0 : timer.getElapsed();
     if (!renderer.xr.isPresenting) {
       if (usingMotion && currentOrientation) {
         motionEuler.set(currentOrientation.beta, currentOrientation.alpha, -currentOrientation.gamma, "YXZ");
@@ -1321,15 +1309,7 @@ function createScene({ mount, onSelect, onModeChange, onMotionReady }) {
       }
     }
 
-    for (let index = 0; index < waterPositions.count; index += 1) {
-      const offset = index * 3;
-      const localX = waterBase[offset];
-      const localY = waterBase[offset + 1];
-      const height = Math.sin(localX * 0.32 + time * 0.42) * 0.055
-        + Math.sin(localY * 0.21 - time * 0.31) * 0.035;
-      waterPositions.setZ(index, height);
-    }
-    waterPositions.needsUpdate = true;
+    waterSurface.update(time);
 
     markers.forEach((marker, index) => {
       marker.lookAt(camera.position);
@@ -1340,10 +1320,6 @@ function createScene({ mount, onSelect, onModeChange, onMotionReady }) {
       marker.userData.haloMaterial.opacity = isHovered ? 0.27 : isDiscovered ? 0.055 : 0.1;
       marker.userData.ringMaterial.opacity = isHovered ? 0.76 : isDiscovered ? 0.2 : 0.34;
       marker.userData.dotMaterial.opacity = isHovered ? 0.94 : isDiscovered ? 0.32 : 0.5;
-    });
-    waveStrips.forEach((strip) => {
-      strip.position.y = -0.47 + Math.sin(time * 0.8 + strip.userData.phase) * 0.015;
-      strip.position.x += Math.sin(time * 0.12 + strip.userData.phase) * 0.0007;
     });
     fogPoints.rotation.y = Math.sin(time * 0.025) * 0.04;
     fogBanks.forEach((bank, index) => {
@@ -1356,6 +1332,11 @@ function createScene({ mount, onSelect, onModeChange, onMotionReady }) {
     if (import.meta.env.DEV) {
       renderer.domElement.dataset.drawCalls = String(renderer.info.render.calls);
       renderer.domElement.dataset.triangles = String(renderer.info.render.triangles);
+      renderer.domElement.dataset.savedDrawCalls = String(savedDrawCalls);
+      renderer.domElement.dataset.clueCount = String(HARBOR_CLUES.length);
+      renderer.domElement.dataset.waterPasses = "1";
+      renderer.domElement.dataset.waterVertices = String(water.geometry.attributes.position.count);
+      renderer.domElement.dataset.renderPixelRatio = String(renderer.getPixelRatio());
     }
   });
 
