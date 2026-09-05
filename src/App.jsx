@@ -74,7 +74,14 @@ function TabNav({ activeTab, onTabChange, scanLayout = false }) {
   );
 }
 
-export function App({ storage, initialTab = "welcome", experienceControllerFactory = createExperienceController, recognizerFactory } = {}) {
+export function App({
+  storage,
+  initialTab = "welcome",
+  experienceControllerFactory = createExperienceController,
+  recognizerFactory,
+  initialScanStateOverride,
+  imageAnchorTrackerFactory,
+} = {}) {
   const appRef = useRef(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -90,7 +97,7 @@ export function App({ storage, initialTab = "welcome", experienceControllerFacto
   const [returnTarget, setReturnTarget] = useState(null);
   const [storageAvailable, setStorageAvailable] = useState(true);
   const [toast, setToast] = useState("");
-  const [scanState, dispatchScan] = useReducer(scanReducer, initialScanState);
+  const [scanState, dispatchScan] = useReducer(scanReducer, initialScanStateOverride ?? initialScanState);
   const [learningState, dispatchLearning] = useReducer(learningReducer, undefined, () => {
     try {
       const savedStorage = storage ?? window.localStorage;
@@ -274,6 +281,7 @@ export function App({ storage, initialTab = "welcome", experienceControllerFacto
               onMatchedEvent={handleMatchedEvent}
               videoElement={videoRef.current}
               recognizerFactory={recognizerFactory}
+              imageAnchorTrackerFactory={imageAnchorTrackerFactory}
             />
           </div>
 

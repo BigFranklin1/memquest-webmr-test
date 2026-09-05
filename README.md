@@ -126,7 +126,7 @@ Challenges 和 Progress 不属于美国革命单元。美国革命只是第一�
 
 匹配允许少量 OCR 错字，但必须命中标题或事件专属短语，仅有年份不能触发匹配。三轮未匹配时显示明确的无匹配状态；OCR 加载或执行失败时显示单独的错误与重试入口。
 
-识别成功后可以播放事件故事、进入对应时间线卡片、查看关联人物 Samuel Adams，或再次扫描。摄像头画面和识别文本不会上传、持久化或计入学习进度。
+识别成功后会继续保留实时摄像头，并在透明 Three.js 场景中生成带短暂粒子揭示效果的 Samuel Adams 人物模型。周围悬浮事件资料、故事语音、时间线、Samuel Adams 人物页和再次扫描入口。默认仍使用稳定的屏幕空间投影，不改变原有流程。只有匹配 Boston Tea Party 时才可手动打开 `Page anchor` 测试开关：它会按需加载本地图片追踪模块，并以 `src/assets/tracking/boston-tea-party-cover.png` 为参考目标，让人物的位置和朝向跟随封面；封面离开画面时模型暂时隐藏，其他操作仍可使用。该能力是当前页面会话中的图片目标姿态，不是平面检测、持久空间锚点或 WebXR Anchors。摄像头画面和识别文本不会上传、持久化或计入学习进度。
 
 ### 人物互动与语音
 
@@ -220,6 +220,10 @@ src/
 ├── App.jsx                  # 应用外壳、全局导航、相机/XR 占用管理
 ├── experience.js            # getUserMedia 与 immersive-ar 控制器
 ├── ScanExperience.jsx       # Scan、识别结果、人物、问答与时间线
+├── ScanArtifactProjection.jsx # 默认屏幕空间人物与粒子投影
+├── SamuelAdamsProjectionModel.js # 共用 FBX 加载、尺寸归一化、循环动画与资源释放
+├── ScanImageAnchorProjection.jsx # 可选封面图片追踪与页面锚定投影
+├── assets/tracking/           # 参考封面原图与编译后的 .mind 目标
 ├── scanData.js              # 人物、事件和 OCR 匹配预设
 ├── scanMatcher.js           # 文本归一化与模糊匹配
 ├── scanState.js             # Scan 状态机
@@ -237,6 +241,7 @@ src/
 
 scripts/
 ├── project.ps1              # Windows 项目命令入口
+├── compile-image-target.mjs # 从参考 PNG 重新生成 MindAR 目标
 └── prepare-sites-build.mjs  # Sites 构建兼容层
 
 tests/
@@ -260,12 +265,13 @@ tests/
 5. 一个扫描周期复用一个 Worker，任务不并发。
 6. 匹配成功即显示事件结果；否则约 1.2 秒后继续，最多三轮。
 7. 退出、隐藏页面、重试、得到结果或卸载组件时取消待处理任务、丢弃过期结果并终止 Worker；退出体验时释放媒体轨道。
+8. 命中 Boston Tea Party 后，`Page anchor` 默认关闭；用户打开后才动态加载图片追踪、识别参考封面并更新 Three.js 姿态。关闭开关或离开结果页会立即停止追踪并释放渲染资源。
 
 Scan 状态包括 `idle / scanning / result / unmatched / profile / dialogue / timeline`。OCR 加载进度、稳定检测与错误独立记录。得到匹配结果后可以保留相机背景，不继续运行 OCR。
 
 点击 `Exit scan` 返回 Library，并关闭相机、取消识别；即使先退出、后授权，延迟返回的媒体轨道也会被释放。页面隐藏后暂停相机，回来可以点击 `Resume` 继续。
 
-本地 `/tests/scan-camera-browser-fixture.html` 用模拟相机画面和可控制的识别结果验证手机布局、成功、无匹配、识别异常及权限拒绝。`QA` 中可切换真实 OCR 来检查完整识别流程。测试页使用内存存档，不修改真实学习进度，也不加入生产构建入口。
+本地 `/tests/scan-camera-browser-fixture.html` 用模拟相机画面和可控制的识别结果验证手机布局、成功、无匹配、识别异常及权限拒绝。`QA` 中可切换真实 OCR 来检查完整识别流程；`?visual=result&anchor=on` 仅供开发验收，会用参考封面作为明确标注的模拟相机背景并注入稳定姿态。测试页使用内存存档，不修改真实学习进度，也不加入生产入口。若替换参考封面，运行 `./scripts/project.ps1 install` 确保依赖完整，再执行 `.\scripts\project.ps1 compile:tracking` 重新生成 `.mind` 文件并重新构建。
 
 ## 七、扩展新的历史内容
 
@@ -343,7 +349,7 @@ Vercel 发布的是网站构建结果，README 属于项目源文档，不会自
 ## 十、已知边界
 
 - 只识别已配置的印刷英文事件，不支持手写、中文、人脸或任意实物识别。
-- 不包含真正的平面命中测试、空间锚点或实物跟踪。
+- Boston Tea Party 提供默认关闭、会话级的参考封面图片追踪；它不是任意实物识别，也不包含平面命中测试、持久 WebXR 空间锚点或跨页面恢复。
 - 3D 场景和生成式历史图片属于原型素材，不是历史现场的精确复原。
 - 对话为预设问题与音频，不是实时大模型语音交谈。
 - 只有美国革命单元完整可用，其余时代仍是预览。
@@ -351,3 +357,12 @@ Vercel 发布的是网站构建结果，README 属于项目源文档，不会自
 - `localhost` 可用于本机摄像头开发，但手机访问普通 HTTP 局域网地址通常无法获得相同能力，请使用 HTTPS 生产地址。
 - 生产构建仍有较大 JavaScript 分包的警告，后续可继续做按需加载与资源优化。
 - 课堂或正式发布前，应对历史叙述、生成式形象与媒体授权进行人工审核。
+
+
+### Scan 人物模型与循环动画
+
+- 用户提供的原始文件位于 `src/assets/Meshy_AI_colonial_gentleman_re_biped/`，当前使用文件名包含 `Animation_Talk_with_Left_Hand_on_Hip_withSkin.fbx` 的模型；原始文件保持不变。
+- 默认投影和 Page anchor 共用这个模型，约 5.17 秒的说话手势会无限循环。模型包含 24 根骨骼与内嵌贴图；这只是人物动作，未实现与 HeyGen 音频同步的口型。
+- 当前只按需下载所选约 8.4 MB 的 FBX，首次加载会显示 “Bringing Samuel to life…”。下载失败显示重试按钮，事件资料、语音和时间线仍然可以使用。其余 Idle / Walking / Running 文件未接入当前结果页。
+- 动画缩放和脚底定位放在独立父节点上，避免被骨骼动画覆盖。重新扫描、切换投影模式或离开页面会取消未完成的下载并释放动画、骨骼、模型和贴图资源；系统开启减少动态效果时人物保持静止姿态。
+- FBXLoader 会提示原始资产的部分顶点超过四个骨骼权重，加载器将其截取并归一化到 WebGL 支持的四个权重。当前浏览器验收可正常播放；手机低性能设备的帧率与贴图显存占用仍需真机检查。

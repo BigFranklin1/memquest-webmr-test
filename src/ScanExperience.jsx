@@ -5,6 +5,7 @@ import {
   ChatCircleDots,
   Check,
   ClockCounterClockwise,
+  Crosshair,
   FileText,
   Microphone,
   Scan,
@@ -17,6 +18,7 @@ import {
   WarningCircle,
 } from "@phosphor-icons/react";
 import samuelAdamsPortrait from "./assets/samuel-adams-ar.webp";
+import bostonTeaPartyAnchorImage from "./assets/tracking/boston-tea-party-cover.png";
 import stampActImage from "./assets/timeline/stamp-act-1765.webp";
 import bostonMassacreImage from "./assets/timeline/boston-massacre-1770.webp";
 import bostonTeaPartyImage from "./assets/timeline/boston-tea-party-1773.webp";
@@ -32,6 +34,11 @@ import samuelAdamsIntroductionVoice from "./assets/voice/samuel-adams-introducti
 import { DIALOGUE_PROMPTS, SAMUEL_ADAMS, SCAN_EVENT_PRESETS, TIMELINE_EVENTS } from "./scanData.js";
 import { createFrameTools, createOcrScanner } from "./ocrScanner.js";
 import { OCR_STATUSES, SCAN_STAGES } from "./scanState.js";
+import { ScanArtifactProjection } from "./ScanArtifactProjection.jsx";
+import {
+  BOSTON_TEA_PARTY_ANCHOR_EVENT_ID,
+  ScanImageAnchorProjection,
+} from "./ScanImageAnchorProjection.jsx";
 import "./scan-capture.css";
 
 const TIMELINE_IMAGES = Object.freeze({
@@ -105,42 +112,180 @@ function ScanningView({ scanState, cameraReady, captureFrameRef, onResume }) {
   );
 }
 
-function EventResultView({ scanState, onProfile, onTimeline, onRescan, onSpeak, speaking }) {
+const ANCHOR_STATUS_COPY = Object.freeze({
+  off: "Optional beta",
+  loading: "Preparing target…",
+  searching: "Find the book cover",
+  found: "Page locked",
+  lost: "Target lost · realign",
+  error: "Unavailable · use screen mode",
+});
+
+function EventResultView({
+  scanState,
+  onProfile,
+  onTimeline,
+  onRescan,
+  onSpeak,
+  speaking,
+  videoElement,
+  imageAnchorTrackerFactory,
+}) {
   const matchedEvent = TIMELINE_EVENTS.find((event) => event.id === scanState.matchedEventId) ?? TIMELINE_EVENTS[0];
   const image = TIMELINE_IMAGES[matchedEvent.id];
+  const [projectionActive, setProjectionActive] = useState(false);
+  const [modelState, setModelState] = useState("loading");
+  const [modelAttempt, setModelAttempt] = useState(0);
+  const [pageAnchorEnabled, setPageAnchorEnabled] = useState(false);
+  const [anchorTracking, setAnchorTracking] = useState({ state: "off", message: "" });
+  const [anchorPoint, setAnchorPoint] = useState(null);
+  const resultRef = useRef(null);
+  const pageAnchorSupported = matchedEvent.id === BOSTON_TEA_PARTY_ANCHOR_EVENT_ID;
+  const anchorFound = pageAnchorEnabled && anchorTracking.state === "found";
+
+  useEffect(() => {
+    setPageAnchorEnabled(false);
+    setAnchorTracking({ state: "off", message: "" });
+    setAnchorPoint(null);
+  }, [matchedEvent.id]);
+
+  const togglePageAnchor = () => {
+    if (!pageAnchorSupported) return;
+    setPageAnchorEnabled((enabled) => {
+      const nextEnabled = !enabled;
+      setAnchorTracking({ state: nextEnabled ? "loading" : "off", message: "" });
+      setAnchorPoint(null);
+      return nextEnabled;
+    });
+  };
+
+  const updateAnchorPose = (pose) => {
+    const bounds = resultRef.current?.getBoundingClientRect();
+    if (!bounds) return;
+    const nextPoint = { x: pose.x - bounds.left, y: pose.y - bounds.top };
+    setAnchorPoint((current) => {
+      if (current && Math.abs(current.x - nextPoint.x) < 3 && Math.abs(current.y - nextPoint.y) < 3) return current;
+      return nextPoint;
+    });
+  };
+
+  const anchorStyle = anchorPoint ? {
+    "--anchor-x": anchorPoint.x + "px",
+    "--anchor-y": anchorPoint.y + "px",
+  } : undefined;
 
   return (
-    <section className="ocr-result-layout" aria-labelledby="ocr-result-title">
-      <figure className="ocr-result-image">
-        <img src={image} alt={matchedEvent.imageAlt} />
-        <figcaption><Check size={18} weight="bold" /> Historical event matched</figcaption>
-      </figure>
-      <article className="ocr-result-card">
-        <div className="ocr-result-heading">
-          <span><FileText size={26} weight="duotone" /></span>
-          <div><p className="scan-kicker">Archive record acquired</p><strong>{scanState.matchConfidence}% match</strong></div>
+    <section
+      ref={resultRef}
+      className={"scan-ar-result " + (projectionActive ? "has-active-model " : "") + (pageAnchorEnabled ? "has-page-anchor " : "") + (anchorFound ? "is-anchor-found" : "")}
+      style={anchorStyle}
+      aria-labelledby="ocr-result-title"
+    >
+      <div className="scan-ar-lock" role="status">
+        <Check size={18} weight="bold" aria-hidden="true" />
+        <span>
+          <strong>Historical event matched</strong>
+          <small>{pageAnchorEnabled ? "Reference image tracking enabled" : "Screen anchor aligned to the recognized passage"}</small>
+        </span>
+        <b>{scanState.matchConfidence}%</b>
+      </div>
+
+      <button
+        type="button"
+        role="switch"
+        aria-checked={pageAnchorEnabled}
+        className={"scan-anchor-toggle " + (pageAnchorEnabled ? "is-enabled" : "")}
+        onClick={togglePageAnchor}
+        disabled={!pageAnchorSupported}
+        title={pageAnchorSupported ? "Use the supplied book cover as a spatial reference" : "Page anchoring is available for Boston Tea Party scans"}
+      >
+        <Crosshair size={18} weight="duotone" aria-hidden="true" />
+        <span>
+          <strong>Page anchor</strong>
+          <small>{pageAnchorSupported ? ANCHOR_STATUS_COPY[anchorTracking.state] : "Boston Tea Party only"}</small>
+        </span>
+        <i aria-hidden="true"><b /></i>
+      </button>
+
+      <button
+        type="button"
+        className="scan-ar-record scan-ar-card"
+        style={{ "--scan-record-image": "url(" + image + ")" }}
+        onClick={() => !pageAnchorEnabled && setProjectionActive((value) => !value)}
+        aria-expanded={pageAnchorEnabled ? anchorFound : projectionActive}
+      >
+        <span className="scan-ar-record-icon"><FileText size={21} weight="duotone" /></span>
+        <span className="scan-ar-record-copy">
+          <small>{matchedEvent.year} · {matchedEvent.date}</small>
+          <strong id="ocr-result-title">{matchedEvent.title}</strong>
+          <span>{matchedEvent.cardIntro}</span>
+        </span>
+      </button>
+
+      {pageAnchorEnabled ? (
+        <>
+          <ScanImageAnchorProjection
+            key={modelAttempt}
+            onModelStateChange={setModelState}
+            enabled
+            videoElement={videoElement}
+            trackerFactory={imageAnchorTrackerFactory}
+            onTrackingChange={(status) => {
+              setAnchorTracking(status);
+              if (status.state !== "found") setAnchorPoint(null);
+            }}
+            onAnchorPose={updateAnchorPose}
+          />
+          {anchorFound && <span className="scan-anchor-pin-label"><i /> Page locked · move around the cover</span>}
+          {!anchorFound && (
+            <aside className={"scan-anchor-guide is-" + anchorTracking.state} role="status">
+              <img src={bostonTeaPartyAnchorImage} alt="Boston Tea Party book cover used as the page anchor target" />
+              <span>
+                <small>REFERENCE IMAGE</small>
+                <strong>{anchorTracking.state === "loading" ? "Preparing page tracking" : anchorTracking.state === "error" ? "Page tracking unavailable" : "Aim at this book cover"}</strong>
+                <p>{anchorTracking.state === "error" ? anchorTracking.message || "Switch Page anchor off to keep using the screen projection." : "Keep the full cover visible and hold the phone steady."}</p>
+              </span>
+            </aside>
+          )}
+        </>
+      ) : (
+        <div className="scan-ar-model-stage">
+          <ScanArtifactProjection key={modelAttempt} onModelStateChange={setModelState} active={projectionActive} onActivate={() => setProjectionActive((value) => !value)} />
+          {modelState === "ready" && <span className="scan-ar-model-label"><i /> Samuel Adams · historical interpretation</span>}
         </div>
-        <p className="ocr-result-year">{matchedEvent.year} · {matchedEvent.date}</p>
-        <h1 id="ocr-result-title">{matchedEvent.title}</h1>
-        <p className="ocr-result-summary">{matchedEvent.cardIntro}</p>
-        <blockquote>
-          <small>TEXT SEEN IN CAMERA</small>
-          <p>{scanState.recognizedTextExcerpt || "A matching historical phrase was recognized in the camera frame."}</p>
-        </blockquote>
-        <div className="ocr-result-actions">
-          <button type="button" className="scan-primary" onClick={() => onSpeak(TIMELINE_VOICES[matchedEvent.id])}>
-            {speaking ? <Waveform size={19} weight="bold" /> : <SpeakerHigh size={19} weight="duotone" />}
-            {speaking ? "Playing story…" : "Listen to the story"}
-          </button>
-          <button type="button" className="scan-secondary" onClick={onTimeline}><ClockCounterClockwise size={19} weight="duotone" /> Explore timeline</button>
-          <button type="button" className="scan-secondary" onClick={onProfile}><UserFocus size={19} weight="duotone" /> Meet Samuel Adams</button>
-          <button type="button" className="scan-quiet" onClick={onRescan}><Scan size={19} weight="duotone" /> Scan again</button>
-        </div>
-      </article>
+      )}
+
+      {modelState !== "ready" && (
+        <aside className="scan-model-status" role="status">
+          <span>{modelState === "loading" ? "Bringing Samuel to life…" : "Character could not load"}</span>
+          {modelState === "error" && <button type="button" onClick={() => { setModelState("loading"); setModelAttempt((attempt) => attempt + 1); }}>Retry character</button>}
+        </aside>
+      )}
+
+      <button type="button" className={"scan-ar-option scan-ar-listen " + (speaking ? "is-playing" : "")} onClick={() => onSpeak(TIMELINE_VOICES[matchedEvent.id])}>
+        <span>{speaking ? <Waveform size={21} weight="bold" /> : <SpeakerHigh size={21} weight="duotone" />}</span>
+        <b>{speaking ? "Playing story…" : "Listen to story"}</b>
+        <small>Hear the event</small>
+      </button>
+      <button type="button" className="scan-ar-option scan-ar-timeline" onClick={onTimeline}>
+        <span><ClockCounterClockwise size={21} weight="duotone" /></span>
+        <b>Explore timeline</b>
+        <small>See what led here</small>
+      </button>
+      <button type="button" className="scan-ar-option scan-ar-person" onClick={onProfile}>
+        <span><UserFocus size={21} weight="duotone" /></span>
+        <b>Meet Samuel Adams</b>
+        <small>Open character profile</small>
+      </button>
+      <button type="button" className="scan-ar-rescan" onClick={onRescan}><Scan size={17} weight="duotone" /> Scan again</button>
+
+      <aside className={"scan-ar-transcript " + (projectionActive || anchorFound ? "is-visible" : "")} aria-live="polite">
+        <FileText size={18} weight="duotone" aria-hidden="true" />
+        <span><small>TEXT SEEN IN CAMERA</small>{scanState.recognizedTextExcerpt || "A matching historical phrase was recognized in the camera frame."}</span>
+      </aside>
     </section>
   );
 }
-
 function UnmatchedView({ scanState, onRetry, onTimeline }) {
   const recognitionFailed = scanState.ocrStatus === OCR_STATUSES.ERROR;
   return (
@@ -370,6 +515,7 @@ export function ScanExperience({
   onMatchedEvent,
   videoElement,
   recognizerFactory,
+  imageAnchorTrackerFactory,
 }) {
   const scannerRef = useRef(null);
   const captureFrameRef = useRef(null);
@@ -483,6 +629,8 @@ export function ScanExperience({
         onRescan={onRetryCamera}
         onSpeak={speak}
         speaking={speaking}
+        videoElement={videoElement}
+        imageAnchorTrackerFactory={imageAnchorTrackerFactory}
       />
     );
   }

@@ -1,22 +1,26 @@
 // Developer-only fixture: synthetic camera, real frame crop/controller/reducer, gated OCR.
 // No test hook or outcome controls are included in the production entry point.
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "../src/App.jsx";
 import { createExperienceController } from "../src/experience.js";
+import { initialScanState, OCR_STATUSES, SCAN_STAGES } from "../src/scanState.js";
 import "../src/styles.css";
 import "../src/archive-refresh.css";
+import bostonTeaPartyAnchorImage from "../src/assets/tracking/boston-tea-party-cover.png";
 
 const records = new Map();
 const storage = { getItem: key => records.get(key) ?? null, setItem: (key, value) => records.set(key, value) };
-let outcome = "hold";
+const fixtureParams = new URLSearchParams(window.location.search);
+const directResult = fixtureParams.get("visual") === "result";
+let outcome = fixtureParams.get("outcome") ?? "hold";
 let releaseReading;
 let cameraDenied = false;
 let terminated = 0;
 let report = () => {};
 const streams = [];
 
-function syntheticStream() {
+async function syntheticStream() {
   const page = document.createElement("canvas");
   page.width = 1920;
   page.height = 1080;
@@ -38,12 +42,43 @@ function syntheticStream() {
   ctx.font = "17px sans-serif";
   ctx.fillStyle = "#6c6459";
   ctx.fillText("SYNTHETIC CAMERA · LAYOUT TEST", 960, 900);
+
+  const anchorTarget = new Image();
+  anchorTarget.src = bostonTeaPartyAnchorImage;
+  try {
+    await anchorTarget.decode();
+    ctx.fillStyle = "#d5c29b";
+    ctx.fillRect(594, 72, 732, 936);
+    ctx.drawImage(anchorTarget, 618, 102, 684, 876);
+  } catch {
+    // The text fixture still works if the local target image cannot be decoded.
+  }
+
   const stream = page.captureStream(10);
   streams.push(stream);
   return stream;
 }
 
 function controllerFactory(options) {
+  if (directResult) {
+    const state = { mode: "camera", code: null, message: "" };
+    options.videoElement.poster = bostonTeaPartyAnchorImage;
+    options.videoElement.dataset.fixtureCamera = "reference-image";
+    Object.defineProperties(options.videoElement, {
+      videoWidth: { configurable: true, value: 1920 },
+      videoHeight: { configurable: true, value: 1080 },
+      readyState: { configurable: true, value: HTMLMediaElement.HAVE_CURRENT_DATA },
+    });
+    queueMicrotask(() => options.onStateChange(state));
+    return {
+      get mode() { return state.mode; },
+      get state() { return state; },
+      probeSupport: async () => false,
+      startExperience: async () => state,
+      stopExperience: async () => ({ mode: "idle", code: null, message: "" }),
+    };
+  }
+
   const controller = createExperienceController({ ...options, env: {
     isSecureContext: true,
     navigator: { mediaDevices: { getUserMedia: async () => {
@@ -58,6 +93,34 @@ function controllerFactory(options) {
   } };
 }
 
+function fixtureAnchorTrackerFactory({ onMatrix }) {
+  const near = 0.1;
+  const far = 100;
+  const aspect = 1920 / 1080;
+  const focalLength = 1 / Math.tan((54 * Math.PI / 180) / 2);
+  const projectionMatrix = [
+    focalLength / aspect, 0, 0, 0,
+    0, focalLength, 0, 0,
+    0, 0, (far + near) / (near - far), -1,
+    0, 0, (2 * far * near) / (near - far), 0,
+  ];
+  const timer = window.setTimeout(() => {
+    onMatrix([
+      1, 0, 0, 0,
+      0, 0.6216, -0.7833, 0,
+      0, 0.7833, 0.6216, 0,
+      -0.5, -0.3978, -1.7487, 1,
+    ]);
+  }, 220);
+
+  return Promise.resolve({
+    inputWidth: 1920,
+    inputHeight: 1080,
+    dimensions: [1, 1.28],
+    projectionMatrix,
+    stop() { window.clearTimeout(timer); },
+  });
+}
 async function recognizerFactory(onProgress) {
   onProgress({ status: "loading", progress: .5 });
   let cancelled = false;
@@ -78,8 +141,46 @@ function Fixture() {
   const [realOcr, setRealOcr] = useState(false);
   report = () => refresh(value => value + 1);
   const choose = next => { outcome = next; releaseReading?.(); releaseReading = undefined; refresh(value => value + 1); };
+  useEffect(() => {
+    if (fixtureParams.get("autorun") !== "scan") return undefined;
+    const timer = window.setInterval(() => {
+      const scanButton = [...document.querySelectorAll("button")].find(button => button.textContent.trim() === "Scan");
+      if (!scanButton) return;
+      window.clearInterval(timer);
+      scanButton.click();
+    }, 60);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (fixtureParams.get("anchor") !== "on") return undefined;
+    const timer = window.setInterval(() => {
+      const anchorSwitch = document.querySelector('button[role="switch"][title*="book cover"]');
+      if (!anchorSwitch || anchorSwitch.disabled || anchorSwitch.getAttribute("aria-checked") === "true") return;
+      window.clearInterval(timer);
+      anchorSwitch.click();
+    }, 100);
+    return () => window.clearInterval(timer);
+  }, []);
+
   return <>
-    <App storage={storage} experienceControllerFactory={controllerFactory} recognizerFactory={realOcr ? undefined : recognizerFactory} />
+    <App
+      storage={storage}
+      initialTab={directResult ? "scan" : "welcome"}
+      initialScanStateOverride={directResult ? {
+        ...initialScanState,
+        stage: SCAN_STAGES.RESULT,
+        ocrStatus: OCR_STATUSES.MATCHED,
+        selectedEventId: "tea-party",
+        matchedEventId: "tea-party",
+        matchConfidence: 94,
+        ocrConfidence: 94,
+        recognizedTextExcerpt: "The Boston Tea Party · December 16, 1773",
+      } : undefined}
+      experienceControllerFactory={controllerFactory}
+      recognizerFactory={realOcr ? undefined : recognizerFactory}
+      imageAnchorTrackerFactory={directResult ? fixtureAnchorTrackerFactory : undefined}
+    />
     <details style={{ position: "fixed", zIndex: 100, right: 8, top: "48%", font: "10px sans-serif", color: "white", background: "#142033", padding: 5 }}>
       <summary>QA</summary>
       <div style={{ display: "grid", gap: 4, padding: 6 }}>

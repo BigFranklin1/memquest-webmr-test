@@ -1,5 +1,5 @@
 param(
-  [ValidateSet("install", "dev", "test", "build", "test:sites", "preview")]
+  [ValidateSet("install", "dev", "test", "build", "test:sites", "preview", "compile:tracking")]
   [string]$Task = "dev",
 
   [Parameter(ValueFromRemainingArguments = $true)]
@@ -72,6 +72,9 @@ try {
         throw "Dependencies are missing. Run: .\scripts\project.ps1 install"
       }
       Invoke-NodeCommand -Arguments @($viteCli, "preview", "--host", "0.0.0.0", "--port", "4173", "--strictPort") + $TaskArguments
+    }
+    "compile:tracking" {
+      Invoke-NodeCommand -Arguments @("scripts/compile-image-target.mjs") + $TaskArguments
     }
   }
 }

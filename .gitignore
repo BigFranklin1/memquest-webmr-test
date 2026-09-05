@@ -8,6 +8,7 @@ node_modules/
 # Generated output and local QA captures
 dist/
 qa-*.png
+.artifacts/
 *.log
 
 # OS metadata

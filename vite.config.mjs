@@ -16,9 +16,11 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ["react", "react-dom/client"],
+    exclude: ["mind-ar"],
   },
   server: {
     host: "0.0.0.0",
+    watch: { ignored: ["**/.artifacts/**"] },
     allowedHosts: ["terminal.local"],
     warmup: {
       clientFiles: ["./src/main.jsx"],

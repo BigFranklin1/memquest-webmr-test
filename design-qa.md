@@ -243,3 +243,39 @@ final result: passed (local visual and regression QA)
 - Scope boundary: local headless-browser visual QA passed. Physical phone GPU frame pacing, device orientation and immersive WebXR still require manual hardware checks; no deployment was performed.
 
 final result: passed (local skybox, fog and architecture QA)
+
+## Scan matched-event 3D projection (2026-09-04)
+
+- Journey: after the local OCR matcher succeeds, the existing camera stream remains visible while the worker terminates. The previous full image-and-panel result was replaced by a transparent Three.js projection centered over the last reading-frame area.
+- Model: the current historical subject is an intentionally abstract `CapsuleGeometry` stand-in with a translucent physical material, wire shell, two ground rings and three orbiting points. Clicking or keyboard-activating the capsule toggles a selected glow and the recognized-text excerpt.
+- Actions: event identity, HeyGen narration, Timeline, Samuel Adams profile and Scan again are separate translucent cards distributed around the model. The controls reuse the existing state transitions and audio files.
+- Responsive evidence: `qa-scan-3d-portrait.png` and `qa-scan-3d-landscape.png` were generated through `/tests/scan-camera-browser-fixture.html?autorun=scan&outcome=match`. The fixture uses a clearly labeled synthetic book page and production camera, OCR scanner, reducer and result components.
+- Accessibility and cleanup: the model has a keyboard equivalent, pointer movement is bounded before activation, reduced-motion users receive a static pose, and all animation frames, listeners, geometry, materials and the renderer are released on unmount.
+- Boundary: this is a stable screen-space anchor aligned to the OCR frame, not plane detection, image tracking, hit testing or a persistent world-space WebXR anchor.
+
+final result: passed (local synthetic-camera 3D result and regression QA)
+
+
+## Optional Boston Tea Party image target (2026-09-05)
+
+- Default behavior: the matched-event result still opens with the existing screen-space capsule. `Page anchor` is an explicit switch and defaults off, so MindAR is not loaded during ordinary Scan, OCR, or non-Boston-Tea-Party results.
+- Target asset: the user-supplied Boston Tea Party cover is stored at `src/assets/tracking/boston-tea-party-cover.png`. `scripts/compile-image-target.mjs` deterministically produces the colocated `.mind` target; both are emitted by the production build.
+- Tracking behavior: when enabled, the result reuses the live `getUserMedia` video instead of requesting a second camera. The capsule receives the image pose, disappears on target loss, reappears on reacquisition, and terminates the tracker and renderer on toggle-off or unmount.
+- Reveal: both the default projection and the page-anchored projection use a single Three.js Points draw call for the gold/blue generation burst. The anchored version settles into a restrained low-opacity ambient sparkle after the initial burst.
+- Controls and fallback: event, narration, Timeline, Samuel Adams, transcript, rescan, and primary navigation remain DOM controls above the transparent renderer. A tracking error preserves those controls and tells the learner to switch the optional mode off.
+- Responsive evidence: `.artifacts/scan-default-landscape.png` verifies the unchanged 844x390 default flow; `docs/images/scan-page-anchor.png` verifies the same viewport with the reference cover, enabled switch, capsule, particles, and floating cards. The image-anchor capture uses a developer-only simulated camera background and injected stable pose, both documented as such.
+- Verification: all 54 application tests and all 4 Sites worker tests pass; the production build succeeds and emits the lazy `controller` chunk plus the `.mind` asset. The existing large-chunk warning remains.
+- Boundary: target compilation and simulated browser layout are locally verified. Physical Android/iPhone tracking stability, lighting tolerance, camera autofocus, thermal performance, and true-device orientation still require manual hardware checks. This feature is image-target tracking for one cover, not plane detection, persistent WebXR Anchors, or arbitrary object recognition.
+
+final result: passed (local opt-in flow and simulated-pose visual QA; physical target tracking pending)
+
+
+## Samuel Adams animated Scan figure — 2026-09-05
+
+- Replaced both capsule projections with the supplied textured FBX character. Original assets are unchanged; only the talk animation FBX is referenced by the application.
+- The talk clip lasts 5.1666665 seconds. Browser inspection confirmed 24 bones, changing bone transforms during playback, and identical transforms after an additional full loop (maximum pose difference: 0).
+- Screen projection and fixture-driven Page anchor passed at 390×844 and 844×390: character ready, no horizontal overflow, no Vite error overlay.
+- Forced model-download failure showed the compact retry card while all three learning options remained available. Retry and repeated screen/page mode switching succeeded. A cancelled load returned AbortError.
+- No browser runtime exceptions or console errors in these checks. The source FBX emits the known four-skin-weights import warning; the loader handles the conversion.
+- Character snapshots: `docs/images/scan-samuel-result.png` and `docs/images/scan-samuel-page-anchor.png`. Both use a simulated camera/reference image; the Page anchor pose is fixture-injected. Mobile device performance and real image tracking remain separate physical-device checks.
+- Visual check: PASS for the scoped model replacement, scale, figure visibility and surrounding actions. No new interaction targets were added.

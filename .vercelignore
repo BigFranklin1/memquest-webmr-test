@@ -4,3 +4,6 @@ node_modules/
 dist/
 qa-*.png
 *.log
+.artifacts/
+src/assets/Meshy_AI_colonial_gentleman_re_biped.zip
+docs/HANDOFF.zh-CN.pdf
