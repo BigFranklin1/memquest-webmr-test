@@ -423,3 +423,9 @@ Stamp Act：The Stamp Act and the American Revolution（Ken Shumate）、The Sta
 - 数据：`src/johnAdamsData.js`、`src/scanCharacters.js`；目标：`src/anchorTargets.js`；音频及来源：`src/assets/voice/john-adams-manifest.json`。修改参考图片后运行 `npm run compile:tracking -- --event massacre`，再运行 `node scripts/create-anchor-thumbnails.mjs`。
 - 历史对白为教学改编，不是原话或真实声音。资料来源见人物数据及音频清单。人物定位为 1770 年律师，审判发生在惨案之后。
 - John 现已加入 Library People，与波士顿惨案、辩护陈词及 Samuel 的关系图互相关联；题库没有扩充。
+
+## 自动 Scan（图片 + OCR）
+
+默认 Auto recognition 共用一条摄像头流；低分辨率图片匹配与 OCR 推理交替运行。三次连续图片命中后进入事件并开启页面跟踪；文字先命中会短暂核对图片，冲突需手动选择。文字结果先用屏幕投影，最多继续寻找对应封面 12 秒。可在扫描底部切换 Text only。丢失封面会隐藏模型，不自动跳到屏幕中央。
+
+新增/调整参考图后，除了事件目标集，还必须运行 `node scripts/compile-image-target.mjs --all`，提交新的 `auto-scan-targets.mind`。详见扩展手册。

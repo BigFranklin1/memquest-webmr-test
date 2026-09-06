@@ -23,6 +23,11 @@ export const ANCHOR_TARGET_SETS = Object.freeze({
   },
 });
 
+export const AUTO_SCAN_TARGET_SET = Object.freeze({
+  compiledFile: 'auto-scan-targets.mind',
+  images: Object.values(ANCHOR_TARGET_SETS).flatMap(set => set.images.map(image => ({ ...image, eventId: set.eventId, subjectId: set.subjectId }))),
+});
+
 export function getAnchorTargetSet(eventId) {
   return Object.hasOwn(ANCHOR_TARGET_SETS, eventId) ? ANCHOR_TARGET_SETS[eventId] : null;
 }

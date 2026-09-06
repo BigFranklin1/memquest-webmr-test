@@ -337,3 +337,10 @@ Design mode: preserve and modernize. Existing navy/gold identity, English copy, 
 - PASS: 68 application tests, production build and 4 Sites packaging tests.
 - README and beginner handoff now link to docs/EXTENDING.zh-CN.md for reference-image compilation, model/animation integration, voice mapping and Library graph extensions.
 - Physical Android/iPhone tracking remains a separate, unverified device check.
+
+## 2026-09-07 — automatic image + OCR Scan
+
+- PASS: six original cover files matched their correct global indices using the actual MindAR detect/match path at 640px.
+- PASS: synthetic-camera 390×844 and 844×390 complete Scan → image result → automatic anchor activation even with unmatched OCR; no runtime errors or horizontal overflow. Landscape screenshot inspected; camera remains dominant.
+- PASS: arbitration tests cover three-observation stability, conflicting events, late callbacks, text-only and shared inference gate.
+- Limit: image acquisition and pose tracking deliberately use separate lifecycles, so a short reacquisition interval may appear after an image match. Real mobile performance and physical book tracking are not verified by these synthetic captures.

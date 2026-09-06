@@ -1183,3 +1183,9 @@ Library 新增 John 及辩护陈词后，人物为五名、证据为七条。新
 检查 Git 差异，只提交本次代码、必要素材、编译目标、测试和文档。不提交密钥、缓存、node_modules、dist、无关 ZIP 或旧 PDF。GitHub push 后还要等 Vercel READY，并在正式域名打开新人物，核对版本；本地成功不是上线成功。
 
 **完整操作手册：[EXTENDING.zh-CN.md](EXTENDING.zh-CN.md)**。转交给下一位同学时，请把整个仓库交出去，至少保留本文、扩展手册、README 和 docs/images，不要只传一份过期 PDF。
+
+## 自动识别版本的交接补充
+
+点击 Scan 默认同时准备参考图片搜索和英文 OCR，使用同一相机，推理交替执行。用户可在扫描底部选择 Text only。参考图稳定匹配会自动开启页面跟踪；文字匹配先显示屏幕投影，随后最多 12 秒寻找同事件封面；冲突会要求选择。离开参考图会隐藏锚定人物，用户可以明确选择 Continue in screen view。
+
+维护参考图时，请同时编译事件目标集和全局目标集：`node scripts/compile-image-target.mjs --event massacre`（替换为对应事件），再执行 `node scripts/compile-image-target.mjs --all`。只上传 PNG 或只更新事件目标集，会导致自动搜索与页面跟踪不一致。详见 [模块扩展手册](./EXTENDING.zh-CN.md)。所有匹配仍在设备本地完成，不上传相机画面；浏览器模拟验收不能替代真机书本测试。

@@ -25,7 +25,9 @@ import johnMotive from "./assets/voice/john-adams-motive.mp3";
 import johnAlliance from "./assets/voice/john-adams-alliance.mp3";
 import johnStory from "./assets/voice/john-adams-story.mp3";
 import samuelAdamsPortrait from "./assets/samuel-adams-ar.webp";
-import { getAnchorTargetAssets } from "./anchorTargetAssets.js";
+import { createAutoScan } from "./autoScan.js";
+import { createImageTargetSearch } from "./imageTargetSearch.js";
+import { getAnchorTargetAssets, getAutoScanTargetAssets } from "./anchorTargetAssets.js";
 import stampActImage from "./assets/timeline/stamp-act-1765.webp";
 import bostonMassacreImage from "./assets/timeline/boston-massacre-1770.webp";
 import bostonTeaPartyImage from "./assets/timeline/boston-tea-party-1773.webp";
@@ -103,7 +105,7 @@ const OCR_STATUS_COPY = Object.freeze({
   },
 });
 
-function ScanningView({ scanState, cameraReady, captureFrameRef, onResume }) {
+function ScanningView({ scanState, cameraReady, captureFrameRef, onResume, autoRecognition, setAutoRecognition, autoStatus }) {
   const copy = cameraReady
     ? OCR_STATUS_COPY[scanState.ocrStatus] ?? OCR_STATUS_COPY[OCR_STATUSES.LOADING]
     : {
@@ -115,7 +117,7 @@ function ScanningView({ scanState, cameraReady, captureFrameRef, onResume }) {
   return (
     <section className="scan-capture-view" aria-labelledby="scanning-title">
       <div ref={captureFrameRef} className="scan-reading-frame" aria-hidden="true">
-        <span className="scan-reading-hint"><TextAa size={17} /> Frame the English title or passage</span>
+        <span className="scan-reading-hint"><TextAa size={17} /> {autoRecognition ? "Frame a registered cover or English passage" : "Frame the English title or passage"}</span>
       </div>
       <div className="scan-capture-status">
         <div className="scan-capture-status-row" role="status" aria-live="polite">
@@ -124,6 +126,8 @@ function ScanningView({ scanState, cameraReady, captureFrameRef, onResume }) {
           {onResume ? <button type="button" onClick={onResume}>Resume</button> : <span className="scan-capture-pass">{cameraReady && scanState.ocrStatus === OCR_STATUSES.LOADING ? `${progress}%` : `${Math.min(3, scanState.attemptCount + 1)} / 3`}</span>}
         </div>
         {cameraReady && scanState.ocrStatus !== OCR_STATUSES.STABILIZING && <div className="scan-capture-progress" role="progressbar" aria-label="Text recognition" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}><span style={{ width: `${progress}%` }} /></div>}
+        <p className="scan-capture-privacy"><button type="button" className="scan-mode-choice" onClick={() => setAutoRecognition(v => !v)}>{autoRecognition ? 'Auto recognition · Images + text' : 'Text only'} · Switch</button></p>
+        {autoRecognition && <p className="scan-capture-privacy" role="status">{autoStatus || 'Looking for registered covers and English text'}</p>}
         <p className="scan-capture-privacy"><ShieldCheck size={13} aria-hidden="true" /> On-device only · No images uploaded</p>
       </div>
     </section>
@@ -152,10 +156,11 @@ function EventResultView({
 }) {
   const matchedEvent = TIMELINE_EVENTS.find((event) => event.id === scanState.matchedEventId) ?? TIMELINE_EVENTS[0];
   const image = TIMELINE_IMAGES[matchedEvent.id];
-  const [projectionActive, setProjectionActive] = useState(false);
+  const [projectionActive, setProjectionActive] = useState(true);
+  const automaticAnchorCancelled = useRef(false);
   const [modelState, setModelState] = useState("loading");
   const [modelAttempt, setModelAttempt] = useState(0);
-  const [pageAnchorEnabled, setPageAnchorEnabled] = useState(false);
+  const [pageAnchorEnabled, setPageAnchorEnabled] = useState(scanState.recognitionSource === "image");
   const [anchorTracking, setAnchorTracking] = useState({ state: "off", message: "" });
   const [anchorPoint, setAnchorPoint] = useState(null);
   const resultRef = useRef(null);
@@ -164,13 +169,36 @@ function EventResultView({
   const anchorFound = pageAnchorEnabled && anchorTracking.state === "found";
 
   useEffect(() => {
-    setPageAnchorEnabled(false);
+    setPageAnchorEnabled(scanState.recognitionSource === "image");
     setAnchorTracking({ state: "off", message: "" });
     setAnchorPoint(null);
-  }, [matchedEvent.id]);
+  }, [matchedEvent.id, scanState.recognitionSource]);
+
+  useEffect(() => {
+    if (scanState.recognitionSource !== 'text-auto' || !targetSet || !videoElement) return;
+    const abort = new AbortController(); let search, timer, stopped = false, hits = 0, last = null;
+    const stop = () => { stopped = true; abort.abort(); clearTimeout(timer); search?.stop(); };
+    const timeout = setTimeout(stop, 12000);
+    (async () => {
+      try {
+        search = await createImageTargetSearch({ videoElement, targetUrl: targetSet.targetUrl, targetCount: targetSet.images.length, signal: abort.signal });
+        if (stopped) { search.stop(); return; }
+        const tick = async () => {
+          try {
+            const index = await search.detect(); if (stopped) return;
+            hits = index !== null && index === last ? hits + 1 : index === null ? 0 : 1; last = index;
+            if (hits >= 3) { stop(); if (!automaticAnchorCancelled.current) setPageAnchorEnabled(true); return; }
+            timer = setTimeout(tick, 500);
+          } catch { stop(); }
+        }; tick();
+      } catch { stop(); }
+    })();
+    return () => { clearTimeout(timeout); stop(); };
+  }, [scanState.recognitionSource, targetSet, videoElement]);
 
   const togglePageAnchor = () => {
     if (!pageAnchorSupported) return;
+    automaticAnchorCancelled.current = true;
     setPageAnchorEnabled((enabled) => {
       const nextEnabled = !enabled;
       setAnchorTracking({ state: nextEnabled ? "loading" : "off", message: "" });
@@ -205,9 +233,9 @@ function EventResultView({
         <Check size={18} weight="bold" aria-hidden="true" />
         <span>
           <strong>Historical event matched</strong>
-          <small>{pageAnchorEnabled ? "Reference image tracking enabled" : "Screen anchor aligned to the recognized passage"}</small>
+          <small>{pageAnchorEnabled ? "Reference image tracking enabled" : scanState.recognitionSource === "image" ? "Image matched · Screen view" : "Text matched · Screen view"}</small>
         </span>
-        <b>{scanState.matchConfidence}%</b>
+        <b>{scanState.recognitionSource === "image" ? "Image" : `${scanState.matchConfidence}%`}</b>
       </div>
 
       <button
@@ -221,7 +249,7 @@ function EventResultView({
       >
         <Crosshair size={18} weight="duotone" aria-hidden="true" />
         <span>
-          <strong>Page anchor</strong>
+          <strong>{pageAnchorEnabled ? "Continue in screen view" : "Page anchor"}</strong>
           <small>{pageAnchorSupported ? ANCHOR_STATUS_COPY[anchorTracking.state] : "No reference images yet"}</small>
         </span>
         <i aria-hidden="true"><b /></i>
@@ -263,7 +291,7 @@ function EventResultView({
               <div className="scan-anchor-target-thumbnails">{targetSet.images.map(image => <img key={image.id} src={image.thumbnailUrl} alt={image.label} />)}</div>
               <span>
                 <small>{targetSet.images.length} REFERENCE IMAGES · AUTO MATCH</small>
-                <strong>{anchorTracking.state === "loading" ? "Preparing page tracking" : anchorTracking.state === "error" ? "Page tracking unavailable" : "Aim at either book cover"}</strong>
+                <strong>{anchorTracking.state === "loading" ? "Preparing page tracking" : anchorTracking.state === "error" ? "Page tracking unavailable" : "Aim at a registered cover"}</strong>
                 <p>{anchorTracking.state === "error" ? anchorTracking.message || "Switch Page anchor off to keep using the screen projection." : "No selection needed. Keep one full cover visible and hold steady."}</p>
               </span>
             </aside>
@@ -302,7 +330,7 @@ function EventResultView({
 
       <aside className={"scan-ar-transcript " + (projectionActive || anchorFound ? "is-visible" : "")} aria-live="polite">
         <FileText size={18} weight="duotone" aria-hidden="true" />
-        <span><small>TEXT SEEN IN CAMERA</small>{scanState.recognizedTextExcerpt || "A matching historical phrase was recognized in the camera frame."}</span>
+        <span><small>{scanState.recognitionSource === "image" ? "REFERENCE IMAGE MATCHED" : "TEXT SEEN IN CAMERA"}</small>{scanState.recognizedTextExcerpt || "A matching historical phrase was recognized in the camera frame."}</span>
       </aside>
     </section>
   );
@@ -316,7 +344,7 @@ function UnmatchedView({ scanState, onRetry, onTimeline }) {
       <h1 id="ocr-unmatched-title">{recognitionFailed ? "Text recognition unavailable" : "No historical match found"}</h1>
       <p>{recognitionFailed
         ? "The on-device OCR worker could not load. Keep the page open and try again."
-        : "The text was read, but it did not match an event currently available in this prototype."}</p>
+        : "No supported event was confirmed. Keep a registered cover or a clear English title in view and try again."}</p>
       {!recognitionFailed && scanState.recognizedTextExcerpt && (
         <blockquote><small>TEXT SEEN IN CAMERA</small><p>{scanState.recognizedTextExcerpt}</p></blockquote>
       )}
@@ -539,6 +567,9 @@ export function ScanExperience({
   imageAnchorTrackerFactory,
 }) {
   const scannerRef = useRef(null);
+  const [autoRecognition, setAutoRecognition] = useState(true);
+  const [autoStatus, setAutoStatus] = useState("");
+  const [conflict, setConflict] = useState(null);
   const captureFrameRef = useRef(null);
   const audioRef = useRef(null);
   const [speaking, setSpeaking] = useState(false);
@@ -551,24 +582,32 @@ export function ScanExperience({
   }, []);
 
   useEffect(() => {
-    if (scanState.stage !== SCAN_STAGES.SCANNING || experience.mode !== "camera" || !videoElement) return undefined;
-
-    const scanner = createOcrScanner({
-      videoElement,
-      recognizerFactory,
-      frameTools: createFrameTools(document, () => captureFrameRef.current?.getBoundingClientRect()),
-      onProgress: (progress) => dispatchScan({ type: "OCR_PROGRESS", ...progress }),
-      onMatch: onMatchedEvent,
-      onNoMatch: (result) => dispatchScan({ type: "NO_MATCH", ...result }),
-      onError: () => dispatchScan({ type: "OCR_ERROR" }),
+    if (scanState.stage !== SCAN_STAGES.SCANNING || experience.mode !== 'camera' || !videoElement || !pageVisible) return;
+    setConflict(null); setAutoStatus('');
+    const targets = getAutoScanTargetAssets();
+    const scanner = createAutoScan({
+      imageEnabled: autoRecognition, targets: targets.images,
+      createSearch: signal => createImageTargetSearch({ videoElement, targetUrl: targets.targetUrl, targetCount: targets.images.length, signal }),
+      createOcr: ({ withCompute, ...callbacks }) => createOcrScanner({
+        videoElement, ...callbacks,
+        recognizerFactory: async progress => {
+          const factory = recognizerFactory ?? (await import('./ocrRuntime.js')).createLocalEnglishRecognizer;
+          const recognizer = await factory(progress);
+          return { terminate: () => recognizer.terminate(), recognize: frame => withCompute(() => recognizer.recognize(frame)) };
+        },
+        options: { retryDelayMs: 2000 },
+        frameTools: createFrameTools(document, () => captureFrameRef.current?.getBoundingClientRect()),
+        onProgress: progress => dispatchScan({ type: 'OCR_PROGRESS', ...progress }),
+      }),
+      onStatus: setAutoStatus,
+      onMatch: result => onMatchedEvent({ ...result, recognitionSource: result.recognitionSource === 'image' ? 'image' : autoRecognition ? 'text-auto' : 'text' }),
+      onConflict: setConflict,
+      onNoMatch: result => dispatchScan({ type: 'NO_MATCH', ...result }),
+      onError: () => dispatchScan({ type: 'OCR_ERROR' }),
     });
-    scannerRef.current = scanner;
-    scanner.start();
-    return () => {
-      if (scannerRef.current === scanner) scannerRef.current = null;
-      scanner.stop();
-    };
-  }, [dispatchScan, experience.mode, onMatchedEvent, recognizerFactory, scanState.stage, videoElement]);
+    scannerRef.current = scanner; scanner.start();
+    return () => { scannerRef.current = null; scanner.stop(); };
+  }, [dispatchScan, experience.mode, onMatchedEvent, recognizerFactory, scanState.stage, videoElement, pageVisible, autoRecognition]);
 
   useEffect(() => () => {
     const audio = audioRef.current;
@@ -628,6 +667,8 @@ export function ScanExperience({
   const audioNotice = audioError ? <p className="scan-audio-error" role="alert">Audio could not play. Tap the audio option again to retry.</p> : null;
 
   if (!pageVisible) return null;
+
+  if (conflict && scanState.stage === SCAN_STAGES.SCANNING) return <section className="ocr-unmatched-view" role="alert"><h1>Image and text suggest different events</h1><p>Choose the event you want to explore.</p>{conflict.map(result => <button className="scan-primary" key={result.eventId} onClick={() => { setConflict(null); onMatchedEvent(result); }}>{result.recognitionSource === 'image' ? 'Image: ' : 'Text: '}{TIMELINE_EVENTS.find(e => e.id === result.eventId)?.title}</button>)}<button className="scan-secondary" onClick={() => { setConflict(null); onRetryCamera(); }}>Scan again</button></section>;
 
   if (hasCameraError) {
     return (
@@ -708,5 +749,5 @@ export function ScanExperience({
     );
   }
 
-  return <ScanningView scanState={scanState} cameraReady={experience.mode === "camera"} captureFrameRef={captureFrameRef} onResume={experience.mode === "idle" ? onRetryCamera : undefined} />;
+  return <ScanningView autoRecognition={autoRecognition} setAutoRecognition={setAutoRecognition} autoStatus={autoStatus} scanState={scanState} cameraReady={experience.mode === "camera"} captureFrameRef={captureFrameRef} onResume={experience.mode === "idle" ? onRetryCamera : undefined} />;
 }

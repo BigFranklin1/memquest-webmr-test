@@ -58,7 +58,7 @@ try {
         "tests/harborVisuals.test.mjs",
         "tests/harborWater.test.mjs",
         "tests/anchorTargets.test.mjs",
-        "tests/johnAdams.test.mjs"
+        "tests/johnAdams.test.mjs", "tests/autoScan.test.mjs"
       ) + $TaskArguments
     }
     "build" {

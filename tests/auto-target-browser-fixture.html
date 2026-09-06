@@ -1,0 +1,12 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Auto target verification</title><body><p>Real reference-image matcher test; simulated camera input, not physical-device validation.</p><script type="module">
+import {createImageTargetSearch} from '/src/imageTargetSearch.js';
+import {getAutoScanTargetAssets} from '/src/anchorTargetAssets.js';
+window.runAutoTargetCheck=async(index)=>{
+ const set=getAutoScanTargetAssets();const target=set.images[index];
+ const image=new Image();image.src='/src/assets/tracking/'+target.file;await image.decode();
+ const canvas=document.createElement('canvas');canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;canvas.getContext('2d').drawImage(image,0,0);
+ canvas.videoWidth=canvas.width;canvas.videoHeight=canvas.height;canvas.readyState=2;document.body.append(canvas);canvas.style.width='240px';
+ const abort=new AbortController();const search=await createImageTargetSearch({videoElement:canvas,targetUrl:set.targetUrl,targetCount:set.images.length,signal:abort.signal});
+ try {return {expected:index,matched:await search.detect(),eventId:target.eventId};}finally{search.stop();canvas.remove();}
+};
+</script></body></html>

@@ -1,7 +1,8 @@
-import { getAnchorTargetSet } from "./anchorTargets.js";
+import { getAnchorTargetSet, AUTO_SCAN_TARGET_SET } from "./anchorTargets.js";
 
 // URLs only; target bytes are fetched only when Page anchor is enabled.
 const assets = import.meta.glob("./assets/tracking/*.{png,mind}", { eager: true, query: "?url", import: "default" });
+export function getAutoScanTargetAssets() { return { ...AUTO_SCAN_TARGET_SET, targetUrl: assets['./assets/tracking/' + AUTO_SCAN_TARGET_SET.compiledFile] }; }
 export function getAnchorTargetAssets(eventId) {
   const preset = getAnchorTargetSet(eventId);
   if (!preset) return null;

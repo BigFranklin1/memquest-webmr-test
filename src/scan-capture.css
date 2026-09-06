@@ -631,3 +631,7 @@
 }
 
 .scan-audio-error { position: fixed; z-index: 100; top: max(12px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); width: min(90vw, 480px); padding: 12px 16px; background: #382a22; color: #ffe7bd; border: 1px solid #e8c775; border-radius: 12px; }
+
+.scan-mode-choice { color: inherit; font: inherit; border: 1px solid #e8c77566; border-radius: 20px; background: #09121e99; padding: 8px 12px; pointer-events: auto; cursor: pointer; }
+
+.scan-capture-status .scan-mode-choice { background: #09121e99; color: #e8c775; min-height: 30px; padding: 4px 10px; border: 1px solid #e8c77555; font-size: 11px; box-shadow: none; }

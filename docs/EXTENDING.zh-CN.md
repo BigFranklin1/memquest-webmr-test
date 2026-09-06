@@ -127,3 +127,13 @@ Library 的 John Adams 是一套完整范例：
 - [ ] Push 后核对 GitHub 提交号；Vercel 等待 READY 后核对正式域名与同一提交；再打开线上 People 和相机页。
 
 保存文件 ≠ Git commit ≠ GitHub push ≠ Vercel 发布。任何一步失败都不要声称四处版本已同步。
+
+## 追加：默认自动扫描目标集
+
+现在 Scan 不再依赖 OCR 先确定事件：`AUTO_SCAN_TARGET_SET` 按 `ANCHOR_TARGET_SETS` 顺序汇总全部参考图。每次新增、删减或重排参考图，必须额外执行：
+
+```powershell
+node scripts/compile-image-target.mjs --all
+```
+
+事件单独 `.mind` 用于结果页姿态跟踪；`auto-scan-targets.mind` 用于首次跨事件搜索。两者都要同步提交。当前六张图的自动识别测试在 `tests/auto-target-browser-fixture.html`，它是模拟输入测试，不代表真实手机性能。`src/autoScan.js` 管理结果仲裁、冲突和计算互斥；`src/imageTargetSearch.js` 使用最长边 640 像素、串行 detect/match 搜索，实际搜索间隔为计算耗时加 400ms。扫描超时 45 秒，支持 Text only 退路。识别不代表世界空间锚点；未登记图片只能走 OCR。
