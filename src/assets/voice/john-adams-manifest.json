@@ -1,0 +1,49 @@
+{
+  "provider": "HeyGen",
+  "voiceId": "0f50a7a5577e4cd583ba738094956899",
+  "voiceName": "Marcus - Professional",
+  "language": "en",
+  "speed": 0.93,
+  "disclaimer": "Educational dramatization; not authentic historical audio or verbatim quotations.",
+  "sources": [
+    "https://home.nps.gov/adam/learn/historyculture/john-adams-1735-1826.htm",
+    "https://founders.archives.gov/documents/Adams/05-03-02-0001-0004-0016"
+  ],
+  "clips": [
+    {
+      "id": "introduction",
+      "file": "john-adams-introduction.mp3",
+      "script": "I am John Adams, a Massachusetts lawyer. In 1770, I defended British soldiers charged after the Boston Massacre. I opposed Parliament's policies, but I believed an accused person deserved a fair hearing. Let us examine the evidence before reaching a judgment.",
+      "duration": 18.729795918367348,
+      "sourceUrl": "https://resource2.heygen.ai/text_to_speech/b55747f990cd4210a5292f816e0eed2c/0f50a7a5577e4cd583ba738094956899/id=ec124c53-0f14-4c49-8ad9-c3b93ce4bd48.wav"
+    },
+    {
+      "id": "identity",
+      "file": "john-adams-identity.mp3",
+      "script": "I am John Adams of Massachusetts. In 1770, I was a lawyer, not yet a president. My work in the Boston Massacre trials asked a difficult question: could justice be fair even when the accused were deeply unpopular?",
+      "duration": 17.08408163265306,
+      "sourceUrl": "https://resource2.heygen.ai/text_to_speech/b55747f990cd4210a5292f816e0eed2c/0f50a7a5577e4cd583ba738094956899/id=80de53d8-2a1e-42de-99ef-1303b22e9c31.wav"
+    },
+    {
+      "id": "motive",
+      "file": "john-adams-motive.mp3",
+      "script": "I defended the soldiers because a fair trial must depend on evidence, not public anger. Representing them did not mean approving British rule. A lawyer's duty can require defending someone whose cause is unpopular.",
+      "duration": 13.191836734693878,
+      "sourceUrl": "https://resource2.heygen.ai/text_to_speech/b55747f990cd4210a5292f816e0eed2c/0f50a7a5577e4cd583ba738094956899/id=edb2e199-22c9-4e41-8e53-3eaafe32b841.wav"
+    },
+    {
+      "id": "alliance",
+      "file": "john-adams-alliance.mp3",
+      "script": "No. Defending the soldiers did not make me a supporter of Parliament's policies. Political disagreement and legal guilt are different questions. Each defendant's actions had to be judged on the evidence.",
+      "duration": 13.191836734693878,
+      "sourceUrl": "https://resource2.heygen.ai/text_to_speech/b55747f990cd4210a5292f816e0eed2c/0f50a7a5577e4cd583ba738094956899/id=804f405b-d231-41cb-9505-a705ad947ab0.wav"
+    },
+    {
+      "id": "story",
+      "file": "john-adams-story.mp3",
+      "script": "The Boston Massacre took place on March fifth, 1770. Five colonists died following a confrontation with British soldiers. The trials came later that year. As a defense lawyer, I challenged conflicting testimony. Six soldiers were acquitted, while two were convicted of manslaughter. The episode asks us to distinguish political images, eyewitness accounts, and legal proof.",
+      "duration": 25.417142857142856,
+      "sourceUrl": "https://resource2.heygen.ai/text_to_speech/b55747f990cd4210a5292f816e0eed2c/0f50a7a5577e4cd583ba738094956899/id=ff733431-4419-4586-ae4c-07157d033717.wav"
+    }
+  ]
+}

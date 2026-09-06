@@ -7,10 +7,10 @@ import {ANCHOR_TARGET_SETS,getAnchorTargetSet,createTargetRouter} from '../src/a
 import {createMindArTracker} from '../src/imageAnchorTracker.js';
 const matrix=[1,0,0,0,0,1,0,0,0,0,1,0,0,0,-5,1];
 
-test('event bundles contain the correct ordered images and all link to Samuel Adams',async()=>{
-  assert.equal(getAnchorTargetSet('massacre'),null);assert.equal(getAnchorTargetSet('toString'),null);
+test('event bundles contain the correct ordered images and link to the correct character',async()=>{
+  assert.equal(getAnchorTargetSet('congress'),null);assert.equal(getAnchorTargetSet('toString'),null);
   for(const set of Object.values(ANCHOR_TARGET_SETS)){
-    assert.equal(set.subjectId,'samuel-adams');assert.equal(set.images.length,2);
+    assert.equal(set.subjectId,set.eventId === 'massacre' ? 'john-adams' : 'samuel-adams');assert.equal(set.images.length,2);
     const data=new CompilerBase().importData(await readFile(new URL('../src/assets/tracking/'+set.compiledFile,import.meta.url)));
     assert.equal(data.length,2);
     for(const [i,image] of set.images.entries()){

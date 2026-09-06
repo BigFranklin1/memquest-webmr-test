@@ -1,5 +1,12 @@
 // Order is the targetIndex order inside each compiled .mind file. Keep stable.
 export const ANCHOR_TARGET_SETS = Object.freeze({
+  massacre: {
+    eventId: "massacre", subjectId: "john-adams", compiledFile: "massacre-targets.mind",
+    images: [
+      { id: "massacre-hinderaker", file: "massacre-hinderaker.png", label: "Boston's Massacre · Eric Hinderaker" },
+      { id: "massacre-zobel", file: "massacre-zobel.png", label: "The Boston Massacre · Hiller B. Zobel" },
+    ],
+  },
   "stamp-act": {
     eventId: "stamp-act", subjectId: "samuel-adams", compiledFile: "stamp-act-targets.mind",
     images: [

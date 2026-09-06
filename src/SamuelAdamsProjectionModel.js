@@ -1,6 +1,8 @@
 import * as THREE from "three";
 import samuelAdamsTalkModelUrl from "./assets/Meshy_AI_colonial_gentleman_re_biped/Meshy_AI_colonial_gentleman_re_biped_Animation_Talk_with_Left_Hand_on_Hip_withSkin.fbx?url";
 
+import johnAdamsTalkModelUrl from "./assets/Meshy_AI_Colonial_Statesman_biped/Meshy_AI_Colonial_Statesman_biped_Animation_Talk_with_Right_Hand_Open_withSkin.fbx?url";
+
 export const SAMUEL_ADAMS_ANIMATION_LABEL = "Talk with left hand on hip";
 
 function disposeObject(root) {
@@ -23,11 +25,11 @@ function disposeObject(root) {
   resources.forEach((resource) => resource.dispose?.());
 }
 
-export async function loadSamuelAdamsProjectionModel({ targetHeight, groundY = 0, signal }) {
+export async function loadSamuelAdamsProjectionModel({ targetHeight, groundY = 0, signal, subjectId = "samuel-adams" }) {
   const { FBXLoader } = await import("three/examples/jsm/loaders/FBXLoader.js");
   signal?.throwIfAborted();
-  const response = await fetch(samuelAdamsTalkModelUrl, { signal });
-  if (!response.ok) throw new Error("The Samuel Adams model could not be downloaded.");
+  const response = await fetch(subjectId === "john-adams" ? johnAdamsTalkModelUrl : samuelAdamsTalkModelUrl, { signal });
+  if (!response.ok) throw new Error("The character model could not be downloaded.");
   const bytes = await response.arrayBuffer();
   signal?.throwIfAborted();
 
@@ -76,7 +78,7 @@ export async function loadSamuelAdamsProjectionModel({ targetHeight, groundY = 0
 
     // Keep normalization outside the animated hierarchy so root tracks cannot override it.
     const root = new THREE.Group();
-    root.name = "Samuel Adams historical interpretation";
+    root.name = `${subjectId === "john-adams" ? "John Adams" : "Samuel Adams"} historical interpretation`;
     root.add(model);
     root.updateMatrixWorld(true);
     const bounds = new THREE.Box3().setFromObject(root, true);

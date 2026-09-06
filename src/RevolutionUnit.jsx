@@ -338,7 +338,7 @@ function EvidenceView({ state, dispatch, onEnterHarbor }) {
               <div className="unit-evidence-detail-media">
                 <img
                   src={evidenceArchiveImage}
-                  alt={`Archival still life representing ${selectedEvidence.title}`}
+                  alt={`Illustrative archival still life; not an original document scan: ${selectedEvidence.title}`}
                   style={{ objectPosition: EVIDENCE_IMAGE_POSITIONS[selectedEvidence.id] }}
                   decoding="async"
                 />
@@ -353,6 +353,7 @@ function EvidenceView({ state, dispatch, onEnterHarbor }) {
               </div>
               <blockquote><small>SUPPORTED CLAIM</small>{selectedEvidence.claim}</blockquote>
               <div className="unit-link-groups">
+                {selectedEvidence.sourceUrl && <a className="unit-text-link" href={selectedEvidence.sourceUrl} target="_blank" rel="noreferrer">Read the archival source <ArrowRight size={15} /></a>}
                 <div><small>RELATED PEOPLE</small>{selectedEvidence.personIds.map((id) => { const person = REVOLUTION_PEOPLE.find((item) => item.id === id); return <button type="button" key={id} onClick={() => openPerson(id)}>{person.name}</button>; })}</div>
               </div>
             </>

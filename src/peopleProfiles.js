@@ -1,6 +1,22 @@
 // Editorial reading layers for the existing American Revolution learning graph.
 // A contextual link does not imply that two people met or acted together.
 export const PEOPLE_PROFILES = Object.freeze({
+  "john-adams": {
+    shortName: "John Adams",
+    introduction: "A Massachusetts lawyer and critic of imperial policy, John Adams defended British soldiers following the Boston Massacre. His courtroom work asks us to distinguish public anger from legal proof, and a person's political loyalties from the right to a fair hearing.",
+    roles: [
+      { icon: "document", title: "Defense lawyer", body: "Examined conflicting testimony and argued that each accused soldier's actions should be judged through evidence and law." },
+      { icon: "institution", title: "Patriot with a legal duty", body: "Opposed imperial policies while accepting an unpopular defense. Representation did not make him an ally of British rule." },
+    ],
+    eventNotes: { massacre: "The shooting occurred on March 5. Adams's role here concerns the trials later in 1770, including his December defense argument." },
+    connections: [
+      { id: "samuel", personId: "samuel-adams", label: "Samuel Adams", kind: "ally", caption: "Shared cause, different roles", detail: "Both opposed imperial policies. Samuel's organizing and John's courtroom advocacy offer different ways to examine the same crisis, rather than a simple opposition between the two men." },
+      { id: "hutchinson", personId: "thomas-hutchinson", label: "Hutchinson", kind: "context", caption: "Colonial authority", detail: "Hutchinson represented government authority during the crisis. His political position provides context for the unrest, not proof of a personal alliance with the defense lawyer." },
+      { id: "soldiers", icon: "people", label: "Accused soldiers", kind: "context", caption: "Legal clients", detail: "Adams represented the accused soldiers in court. A lawyer-client relationship should not be mistaken for political agreement or approval of the soldiers' actions." },
+      { id: "court", icon: "institution", label: "Colonial court", kind: "context", caption: "Testimony and judgment", detail: "The trials tested accounts of the confrontation through legal proceedings. The courtroom offers a different kind of evidence from a political illustration or public speech." },
+      { id: "parliament", icon: "institution", label: "British Parliament", kind: "opponent", caption: "Imperial policy", detail: "Adams criticized Parliament's policies even while defending British soldiers. Political disagreement and the question of an individual's criminal guilt were not the same issue." },
+    ],
+  },
   "samuel-adams": {
     shortName: "Samuel Adams",
     introduction: "A pivotal political organizer, Adams helped turn resistance to parliamentary taxation into coordinated action. Through public meetings, print, and committees, he connected local grievances with a wider defense of colonial self-government.",
@@ -12,7 +28,7 @@ export const PEOPLE_PROFILES = Object.freeze({
       { id: "hancock", personId: "john-hancock", label: "John Hancock", kind: "ally", caption: "Political ally", detail: "Hancock's standing as a merchant and Adams's organizing helped connect commercial opposition with Boston's wider resistance movement." },
       { id: "hutchinson", personId: "thomas-hutchinson", label: "Hutchinson", kind: "opponent", caption: "Royal governor", detail: "Adams challenged the imperial authority that Hutchinson was charged with enforcing, especially during the tea crisis." },
       { id: "hewes", personId: "george-hewes", label: "George Hewes", kind: "context", caption: "Shared resistance", detail: "Hewes represents the working people who carried resistance into action. This is a connection through the movement, not a claim of personal coordination." },
-      { id: "committees", icon: "people", label: "Resistance networks", kind: "ally", caption: "Organization", detail: "Meetings, print, and committees helped circulate arguments and coordinate opposition beyond a single neighborhood." },
+      { id: "john-adams", personId: "john-adams", label: "John Adams", kind: "ally", caption: "Another Patriot perspective", detail: "John defended the soldiers after the Boston Massacre while Samuel organized political opposition. Explore how evidence, public memory and professional duties shaped their different roles." },
       { id: "parliament", icon: "institution", label: "British Parliament", kind: "opponent", caption: "Contested authority", detail: "At the center of Adams's argument was Parliament's claimed authority to tax the colonies without their consent." },
     ],
   },

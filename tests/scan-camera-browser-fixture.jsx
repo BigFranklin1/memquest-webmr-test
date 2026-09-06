@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "../src/App.jsx";
 import { createExperienceController } from "../src/experience.js";
+import { TIMELINE_EVENTS } from "../src/scanData.js";
 import { initialScanState, OCR_STATUSES, SCAN_STAGES } from "../src/scanState.js";
 import "../src/styles.css";
 import "../src/archive-refresh.css";
@@ -182,7 +183,7 @@ function Fixture() {
         matchedEventId: fixtureEvent,
         matchConfidence: 94,
         ocrConfidence: 94,
-        recognizedTextExcerpt: "The Boston Tea Party · December 16, 1773",
+        recognizedTextExcerpt: TIMELINE_EVENTS.find(event => event.id === fixtureEvent)?.title ?? "Historical event",
       } : undefined}
       experienceControllerFactory={controllerFactory}
       recognizerFactory={realOcr ? undefined : recognizerFactory}

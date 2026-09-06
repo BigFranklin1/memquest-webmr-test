@@ -1,3 +1,11 @@
+/* Keep model, controls and interpretation label in separate rows. */
+.scan-character-preview { position: relative; width: 100%; }
+.scan-character-preview .scan-artifact-projection { position: relative; width: 100%; height: clamp(220px, 32dvh, 380px); inset: auto; }
+.scan-character-preview-status { position: absolute; inset: 45% 12px auto; text-align: center; }
+.scan-character-preview > small { display: block; padding: 4px 14px; text-align: center; color: #b9c5d3; font-size: 11px; }
+.dialogue-character.has-character-model .scan-back { position: relative; top: auto; left: auto; align-self: flex-start; margin: 12px 12px 0; }
+.dialogue-character.has-character-model .voice-ready { position: static; margin: 10px; }
+@media (orientation: landscape) and (max-height: 620px) { .scan-character-preview .scan-artifact-projection { height: 180px; } }
 /* Acquisition is a camera view, not a glass-panel page. Results keep the full UI. */
 .experience-app.is-scan-capture .camera-feed { filter: none; }
 .experience-app.is-scan-capture .camera-scrim { background: none; box-shadow: none; }
@@ -621,3 +629,5 @@
   .scan-anchor-target-thumbnails { width: 42px; height: 56px; }
   .scan-anchor-target-thumbnails img { width: 29px; height: 42px; }
 }
+
+.scan-audio-error { position: fixed; z-index: 100; top: max(12px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); width: min(90vw, 480px); padding: 12px 16px; background: #382a22; color: #ffe7bd; border: 1px solid #e8c775; border-radius: 12px; }

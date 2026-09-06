@@ -3,12 +3,14 @@ import { ArrowRight, ArrowsIn, ArrowsOut, Books, Check, FileText, Graph, Megapho
 import { REVOLUTION_EVIDENCE, REVOLUTION_PEOPLE } from "./revolutionData.js";
 import { TIMELINE_EVENTS } from "./scanData.js";
 import { PEOPLE_PROFILES } from "./peopleProfiles.js";
+import johnHero from "./assets/archive/john-adams-people-hero.png";
 import samuelHero from "./assets/archive/samuel-adams-people-hero.png";
 import peopleTriptych from "./assets/archive/revolution-people-triptych.jpg";
 import "./people.css";
 
 const ICONS = { people: UsersThree, print: Megaphone, document: FileText, institution: Bank };
 const PORTRAITS = {
+  "john-adams": { src: johnHero, position: "100% 30%" },
   "samuel-adams": { src: samuelHero, position: "100% 30%" },
   "thomas-hutchinson": { src: peopleTriptych, offset: "0%" },
   "george-hewes": { src: peopleTriptych, offset: "-100%" },
@@ -86,7 +88,7 @@ export function PeopleView({ state, dispatch }) {
         {REVOLUTION_PEOPLE.map((entry) => <button type="button" key={entry.id} className={entry.id === person.id ? "is-active" : ""} aria-pressed={entry.id === person.id} onClick={() => selectPerson(entry.id)}><Portrait personId={entry.id} /><span>{PEOPLE_PROFILES[entry.id].shortName}</span>{state.viewedPersonIds.includes(entry.id) && <Check size={13} />}</button>)}
       </nav>
 
-      <article className={`people-hero ${person.id === "samuel-adams" ? "is-samuel" : ""}`}>
+      <article className={`people-hero ${["samuel-adams", "john-adams"].includes(person.id) ? "is-samuel" : ""}`}>
         <Portrait personId={person.id} className="people-hero-art" descriptive />
         <div className="people-hero-scrim" />
         <div className="people-hero-copy"><span className="people-eyebrow">{person.side} perspective / Boston</span><h1 id="unit-people-title">{person.name}</h1><p className="people-hero-subtitle">{person.role} <span>| {person.lifespan}</span></p><p className="people-hero-introduction">{profile.introduction}</p></div>
@@ -104,7 +106,7 @@ export function PeopleView({ state, dispatch }) {
 
         <section className="people-panel people-events" aria-labelledby="people-events-title">
           <header className="people-panel-heading"><h2 id="people-events-title"><Scroll size={24} weight="duotone" /> Key Events</h2><small>02 / CHRONOLOGY</small></header>
-          <div className="people-event-list">{eventIds.map((id) => { const event = TIMELINE_EVENTS.find((entry) => entry.id === id); return <button type="button" key={id} onClick={() => openEvent(id)}><small>{event.date} {event.year}</small><h3>{event.title}</h3><p>{event.cardIntro}</p><span>Explore event <ArrowRight size={15} /></span></button>; })}</div>
+          <div className="people-event-list">{eventIds.map((id) => { const event = TIMELINE_EVENTS.find((entry) => entry.id === id); return <button type="button" key={id} onClick={() => openEvent(id)}><small>{event.date} {event.year}</small><h3>{event.title}</h3><p>{profile.eventNotes?.[id] ?? event.cardIntro}</p><span>Explore event <ArrowRight size={15} /></span></button>; })}</div>
           {person.eventIds.length > featuredIds.length && <button type="button" className="people-text-button people-show-events" aria-expanded={showAllEvents} onClick={() => setShowAllEvents(!showAllEvents)}>{showAllEvents ? "Show key moments" : `View all ${person.eventIds.length} related events`} <ArrowRight size={16} /></button>}
           <div className="people-evidence-links"><small><Books size={16} /> RELATED EVIDENCE</small>{person.evidenceIds.map((id) => { const evidence = REVOLUTION_EVIDENCE.find((entry) => entry.id === id); return <button type="button" key={id} onClick={() => openEvidence(id)}>{evidence.title}<ArrowRight size={14} /></button>; })}</div>
         </section>

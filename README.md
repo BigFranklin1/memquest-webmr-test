@@ -11,6 +11,20 @@ MemQuest 是一个面向手机浏览器的历史学习原型，使用 React、Vi
 
 > 首次接手建议先阅读交接指南的第 1–5 节。正式交付前需核对本地、GitHub 与 Vercel 版本；保存代码不等于已推送或已上线。
 
+## 接手后最常做的事：扩展内容与素材
+
+重点入口：[模块扩展手册](./docs/EXTENDING.zh-CN.md)。建议先完成一次“给既有事件增加参考封面”，再尝试换模型或新增人物。
+
+| 我想做什么 | 从哪里改 | 验收重点 |
+| --- | --- | --- |
+| 增加锚点参考图 | tracking 素材 + anchorTargets.js + 编译目标集 + 缩略图 | 图像顺序、targetIndex、旧图回归；仅上传图片无效 |
+| 替换 3D 模型/动画 | SamuelAdamsProjectionModel.js（名称沿用，但同时支持 John） | FBX 蒙皮/贴图、动作循环、父组归一化、两个投影模式 |
+| 新增扫描人物 | 人物数据 + scanCharacters.js + 模型和音频映射 | 依据 matchedEventId；不会自动进入 Library |
+| 新增 Library 词条 | revolutionData.js + peopleProfiles.js + PeopleView.jsx 图片映射 | 所有关系 ID 有效、来源明确、探索统计随目录变化 |
+| 更新英文声音 | voice 文件 + ScanExperience.jsx + 音频来源清单 | 字幕与音频一致、实际格式正确、离开后停止 |
+
+当前 Library 含五个人物（新增 John Adams）和七条证据（新增辩护陈词），其余四事件、四港口线索和五道 Memory Check 不变。新词条增加探索分母，但不会抹除已有阅读记录或已获得的单元完成状态。
+
 ## 一、快速运行
 
 ### 环境要求
@@ -273,23 +287,25 @@ Scan 状态包括 `idle / scanning / result / unmatched / profile / dialogue / t
 
 本地 `/tests/scan-camera-browser-fixture.html` 用模拟相机画面和可控制的识别结果验证手机布局、成功、无匹配、识别异常及权限拒绝。`QA` 中可切换真实 OCR 来检查完整识别流程；`?visual=result&anchor=on` 仅供开发验收，会用参考封面作为明确标注的模拟相机背景并注入稳定姿态。测试页使用内存存档，不修改真实学习进度，也不加入生产入口。若替换参考封面，运行 `./scripts/project.ps1 install` 确保依赖完整，再执行 `.\scripts\project.ps1 compile:tracking --event stamp-act` 或 `--event tea-party` 重新生成对应集合，并执行 `node scripts/create-anchor-thumbnails.mjs` 更新缩略图，最后重新构建。
 
-## 七、扩展新的历史内容
+## 七、扩展模块：推荐工作流
 
-### 新增可扫描事件
+1. 在 Git 中保存当前版本并建立小分支，只改一个模块。
+2. 先确定稳定的 eventId/personId，再准备素材；不要先随意重命名旧 ID。
+3. 新参考图须注册、重新编译事件的完整目标集，并生成缩略图：
 
-1. 在 `src/scanData.js` 的 `TIMELINE_EVENTS` 增加事件内容。
-2. 在 `SCAN_EVENT_PRESETS` 增加稳定的 `eventId`、标题、年份、事件专属短语与辅助关键词。
-3. 添加事件图片和英文音频，并在使用资源的组件中注册。
-4. 检查 Library 学习图、挑战引用和统计分母是否需要同步更新。
-5. 在 `tests/scan.test.mjs` 添加匹配、歧义与失败用例。
+```powershell
+node scripts/compile-image-target.mjs --event massacre
+node scripts/create-anchor-thumbnails.mjs
+.\scripts\project.ps1 test
+.\scripts\project.ps1 build
+.\scripts\project.ps1 test:sites
+```
 
-避免只使用 Boston、colonies 或年份等宽泛词作为主要识别依据。
+4. 新模型优先提供带骨骼、蒙皮和贴图的 FBX；当前加载器不能直接读取 GLB。只加载选中的一段动作，不要一次加载整包。
+5. 用手机横竖屏测试旧内容和新内容、失去目标与重新识别、动画循环、语音停止。自动化模拟不等于真机通过。
+6. 更新文档/素材来源后再选择性提交、推送并部署；核对生产 READY 状态及 GitHub 提交号。
 
-### 新增历史单元
-
-`src/learningData.js` 定义时代目录、能力与挑战；`src/learningState.js` 管理全局记录；`src/libraryState.js` 目前承担美国革命的内容适配。
-
-发布其他时代前，需要补齐内容 ID、单元状态处理与渲染、图片和音频、测评映射、挑战目标与交叉链接，再将目录状态改为可用。仅新增一张时代卡片不代表该时代已实现。
+完整的文件地图、可复制配置、第三张参考图的测试边界、换模型/动画步骤、角色配音、Library 图谱和 Codex 提问模板见 [模块扩展手册](./docs/EXTENDING.zh-CN.md)。另一个时代不是改一张卡片：还需要内容适配、状态、存档、测评和挑战映射。
 
 ## 八、测试与验收
 
@@ -396,3 +412,14 @@ Stamp Act：The Stamp Act and the American Revolution（Ken Shumate）、The Sta
     node scripts/create-anchor-thumbnails.mjs
 
 无参数的 compile:tracking 仅保留原始单封面兼容流程，不会更新新集合。原始 PNG 保留；界面提示使用小缩略图，只有打开锚定才下载约 1.6 MB 的当前事件 .mind 文件。编译在开发电脑完成，不在用户手机实时编译。参考图片为用户提供的原型素材，正式作品集传播或商业使用前请核实授权。
+
+## John Adams：波士顿惨案扫描角色
+
+- 扫描含 “Boston Massacre” 或 “Boston’s Massacre” 的英文内容，匹配事件后显示 John Adams；其他已有事件保持 Samuel Adams。
+- 默认仍是屏幕投影。打开结果页的 **Page anchor**，将本次提供的任一完整封面放入相机画面，即可自动匹配并显示图像锚定人物；不用手动选择封面。移走目标会隐藏模型。
+- John 使用提供的 Colonial Statesman 模型，循环播放 **Talk with Right Hand Open**。结果、人物介绍、问答和时间线共用同一角色上下文；浏览其他年份不会把 John 切换成 Samuel。
+- 新增五段英文 HeyGen 音频：介绍、三个预设问答、事件故事。声音为 **Marcus - Professional**，语速 0.93。音频在构建时随站点发布，运行时不需要 HeyGen API 密钥，不录音，也不是自由 AI 对话。模型动作不是唇形同步。
+- 用户模型原文件保留；只按需下载选定的说话动画。第二张封面只有 302×466，远距离、反光或模糊会降低稳定性。这里是临时图像姿态追踪，不是持久空间锚点。
+- 数据：`src/johnAdamsData.js`、`src/scanCharacters.js`；目标：`src/anchorTargets.js`；音频及来源：`src/assets/voice/john-adams-manifest.json`。修改参考图片后运行 `npm run compile:tracking -- --event massacre`，再运行 `node scripts/create-anchor-thumbnails.mjs`。
+- 历史对白为教学改编，不是原话或真实声音。资料来源见人物数据及音频清单。人物定位为 1770 年律师，审判发生在惨案之后。
+- John 现已加入 Library People，与波士顿惨案、辩护陈词及 Samuel 的关系图互相关联；题库没有扩充。

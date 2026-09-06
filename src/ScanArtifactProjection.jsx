@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { loadSamuelAdamsProjectionModel } from "./SamuelAdamsProjectionModel";
 
-export function ScanArtifactProjection({ active, onActivate, onModelStateChange }) {
+export function ScanArtifactProjection({ active, onActivate, onModelStateChange, subjectId = "samuel-adams", interactive = true }) {
   const mountRef = useRef(null);
   const activeRef = useRef(active);
   const onActivateRef = useRef(onActivate);
@@ -42,7 +42,7 @@ export function ScanArtifactProjection({ active, onActivate, onModelStateChange 
     const loadController = new AbortController();
     modelStateRef.current?.("loading");
 
-    loadSamuelAdamsProjectionModel({ targetHeight: 2.62, groundY: -1.16, signal: loadController.signal })
+    loadSamuelAdamsProjectionModel({ subjectId, targetHeight: 2.62, groundY: -1.16, signal: loadController.signal })
       .then((asset) => {
         if (characterLoadCancelled) {
           asset.dispose();
@@ -51,6 +51,8 @@ export function ScanArtifactProjection({ active, onActivate, onModelStateChange 
         characterAsset = asset;
         characterMount.add(asset.root);
         mount.dataset.modelState = "ready";
+        mount.dataset.subjectId = subjectId;
+        mount.dataset.animation = asset.animationName;
         modelStateRef.current?.("ready");
         projection.scale.setScalar(0.04);
         revealStartedAt = performance.now();
@@ -262,16 +264,16 @@ export function ScanArtifactProjection({ active, onActivate, onModelStateChange 
       renderer.dispose();
       renderer.domElement.remove();
     };
-  }, []);
+  }, [subjectId]);
 
   return (
     <div
       ref={mountRef}
       className={`scan-artifact-projection ${active ? "is-active" : ""}`}
-      role="button"
-      tabIndex={0}
-      aria-label="3D Samuel Adams historical interpretation. Activate to inspect the projection."
-      aria-pressed={active}
+      role={interactive ? "button" : "img"}
+      tabIndex={interactive ? 0 : undefined}
+      aria-label={`3D ${subjectId === "john-adams" ? "John Adams" : "Samuel Adams"} historical interpretation. ${interactive ? "Activate to inspect the projection." : "Looping gesture animation."}`}
+      aria-pressed={interactive ? active : undefined}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();

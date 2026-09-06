@@ -2,7 +2,11 @@
 
 > 写给接手这个项目的人：你不需要先学会编程。第一步是把项目安全地打开，第二步是看懂它，第三步才是让 Codex 帮你做小步修改。
 >
-> 文档核对日期：2026-09-04。以 Windows + PowerShell 为主要路径。应用界面、语音保持英文；说明文档使用中文。
+> 文档核对日期：2026-09-07。以 Windows + PowerShell 为主要路径。应用界面、语音保持英文；说明文档使用中文。
+
+## 本次交接重点：学会扩展，不只是启动
+
+先读本文第 16 节的“素材→配置→编译→验收→发布”工作流，再按 [模块扩展手册](EXTENDING.zh-CN.md) 做实际修改。它逐步讲解锚点参考图、FBX 模型、动画、英文声音和 Library 人物词条；不要只拖入一个文件就认为功能已经接入。
 
 ## 阅读路线
 
@@ -1117,3 +1121,65 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\project.ps1 de
 发布需要分别检查 GitHub 提交和 Vercel 正式地址。只有本地文件变化时，线上不会自动等同于本地。
 
 ![多参考图提示：桌面模拟手机横屏，相机为参考图，姿态由测试注入](images/scan-multi-reference-landscape.jpg)
+
+## 新增交接补充：John Adams 扫描流程
+
+本地代码新增了第二位扫描角色 John Adams，对应 Boston Massacre。GitHub 与线上版本只有在后续提交、部署后才会同步，不要把本地预览截图当作线上已发布证据。
+
+体验路径：Scan → 允许相机 → 对准封面标题完成英文 OCR → John 人物出现 → 打开 Page anchor → 对准任一登记封面。两个封面是 Eric Hinderaker 的 *Boston’s Massacre* 和 Hiller B. Zobel 的 *The Boston Massacre*。目标只会同时跟踪一个，丢失会隐藏人物，重新对准会恢复。不是对任意历史书都能锚定。
+
+人物出现后可点 Listen to story、Meet John Adams、Explore timeline 或 Scan again。人物页有 Hear introduction 和三个英文问题；回答为预先制作的 HeyGen 音频和对应文字，不会听取麦克风输入，也不会即时生成回答。新模型的说话动作循环播放，不与嘴型同步。关闭页面或切换页面时释放动画和音频。
+
+作品集可展示“一件历史事件、不同人物视角”的扩展能力：Samuel 讲抵抗背景，John 讲辩护与证据。不要写成“复原真实声音/容貌”。本次截图使用模拟相机和注入的姿态；算法测试单独使用真实 MindAR 匹配模拟视频，不等于实体书真机测试。
+
+修改角色介绍看 `src/johnAdamsData.js`；修改角色对应的事件看 `src/scanCharacters.js`；修改参考图看 `src/anchorTargets.js`。模型原文件在 `src/assets/Meshy_AI_Colonial_Statesman_biped`，只加载 Right Hand Open 这一份动画。声音清单在 `src/assets/voice/john-adams-manifest.json`，新文案必须同步重新生成音频。
+
+真机验收：Android Chrome 和 iPhone Safari 分别在 HTTPS 站点测试两张实体封面，检查横竖屏、目标移出后隐藏、重新进入后恢复、音频播放与离开后停止。第二张图分辨率较低，第一张含拍摄透视及纸张弯曲，光照、距离和反光都会影响跟踪。若长期使用，建议以后替换为获授权的高清平整封面并重新编译。
+
+![John Adams 手机横屏问答，模拟相机截图](images/john-adams-dialogue-landscape.jpg)
+
+上图为本地自动化截图：模拟相机背景、真实 FBX 动画和 HeyGen 音频。较长内容可在内容区域滚动。不是手机实体书跟踪实拍。
+
+<a id="s16"></a>
+## 16. 继续开发的核心：如何安全地扩展模块
+
+### 16.1 第一次扩展建议做什么
+
+先为现有 Boston Massacre 增加一张参考封面。它只涉及图片登记与目标编译，不需要先理解整个 3D 场景。请准备：有使用权限的完整 PNG、英文书名、对应事件（massacre）、要显示的人物（john-adams）。保留旧图，不要覆盖。
+
+在 Codex 中说明：“请把这张图片加到 massacre 的参考图数组末尾，重新编译完整 .mind 并生成缩略图；现有 John 与 Samuel 流程保持不变，验证第三张图和旧图，不要自动发布。” 当前界面和测试有两张图的假设，必须一起调整，具体清单见扩展手册第 3 节。
+
+### 16.2 参考图为什么需要编译
+
+PNG 是给人看的原图；.mind 是浏览器追踪器使用的特征文件；缩略图是等待识别时显示的小提示图。三者作用不同。更换图片后不重新编译，会出现“提示是新图、追踪仍找旧图”。数组顺序与 targetIndex 必须同步。
+
+相机先用英文 OCR 找事件，然后在结果中开启 Page anchor 才加载参考图追踪。识别书名不代表识别到了封面的位置；任意未登记的图片也不会自动成为锚点。
+
+### 16.3 替换 3D 模型时要交给 Codex 什么
+
+- 素材完整路径、角色名字、对应事件和你希望循环的动作名称。
+- 最好是带蒙皮/骨骼/贴图的 FBX；当前示例中 withSkin 说话文件包含人物和动作。
+- 要保留旧模型，另建版本，不要把 ZIP 当作可直接加载的模型。
+- 明确要求检查“屏幕投影”和“Page anchor”两个模式：大小、方向、落脚点、连续两个以上动作周期、离开后释放资源。
+
+加载器仍叫 SamuelAdamsProjectionModel.js，但它同时支持 John。新增第三人时需要把二选一逻辑扩成角色表；只改文件名不会自动支持新人物。GLB/GLTF 需要另一种加载器，外部贴图需要补充路径，跨骨骼动作需要额外适配。模型说话动作不等于嘴型同步。
+
+### 16.4 图片、文字、语音分别维护
+
+人物 3D、Library 肖像和 HeyGen 配音是三类独立资源。换模型不会自动换肖像，改回答文字也不会自动改录音。John 的文案在 johnAdamsData.js，英文音频清单在 assets/voice/john-adams-manifest.json；清单保留了逐段脚本、声音和来源，字幕与音频必须保持一致。
+
+人物肖像遵循现有电影式档案风格：右侧人物、深蓝暗部、克制暖烛光，文字和按钮由网页叠加。保留 Historical interpretation，不能在作品集宣称真实复原了声音或面容。
+
+### 16.5 Scan 和 Library 必须分别接入
+
+Scan 通过 scanCharacters.js 按匹配事件选角色；Library 则依靠 revolutionData.js 的人物/证据、peopleProfiles.js 的详细档案和关系节点，以及 PeopleView.jsx 的肖像表。John 现在两处都接好了，是可参照的完整范例。
+
+Library 新增 John 及辩护陈词后，人物为五名、证据为七条。新增内容起初是未阅读状态，探索百分比可能变化；已有记录和获得的完成状态保留。不要为让进度看起来漂亮而预填访问记录，也不要不经说明重置用户存档。
+
+### 16.6 扩展后如何验收与发布
+
+先运行项目测试、生产构建、站点测试；再在 390×844、844×390 检查文字、图片和可点击区域；最后用 Android 和 iPhone 的 HTTPS 页面扫描实体参考图。把测试记录分成“单元测试”“模拟浏览器”“实体手机”三栏，没做过的不要写通过。
+
+检查 Git 差异，只提交本次代码、必要素材、编译目标、测试和文档。不提交密钥、缓存、node_modules、dist、无关 ZIP 或旧 PDF。GitHub push 后还要等 Vercel READY，并在正式域名打开新人物，核对版本；本地成功不是上线成功。
+
+**完整操作手册：[EXTENDING.zh-CN.md](EXTENDING.zh-CN.md)**。转交给下一位同学时，请把整个仓库交出去，至少保留本文、扩展手册、README 和 docs/images，不要只传一份过期 PDF。

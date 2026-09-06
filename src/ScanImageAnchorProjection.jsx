@@ -129,7 +129,7 @@ function createParticleBurst() {
   };
 }
 
-function createAnchoredArtifact() {
+function createAnchoredArtifact(subjectId) {
   const root = new THREE.Group();
   const characterMount = new THREE.Group();
   characterMount.rotation.x = Math.PI / 2;
@@ -168,7 +168,7 @@ function createAnchoredArtifact() {
     glow,
     particleBurst,
     async loadCharacter(signal) {
-      const asset = await loadSamuelAdamsProjectionModel({ targetHeight: 0.54, groundY: 0, signal });
+      const asset = await loadSamuelAdamsProjectionModel({ subjectId, targetHeight: 0.54, groundY: 0, signal });
       if (disposed) {
         asset.dispose();
         return false;
@@ -254,7 +254,7 @@ export function ScanImageAnchorProjection({
     anchorGroup.matrixAutoUpdate = false;
     anchorGroup.visible = false;
     scene.add(anchorGroup);
-    const artifact = createAnchoredArtifact();
+    const artifact = createAnchoredArtifact(targetSet.subjectId);
     const loadController = new AbortController();
     modelStateRef.current?.("loading");
     anchorGroup.add(artifact.root);
@@ -263,6 +263,7 @@ export function ScanImageAnchorProjection({
       .then((loaded) => {
         if (loaded && !cancelled) {
           mount.dataset.modelState = "ready";
+          mount.dataset.subjectId = targetSet.subjectId;
           modelStateRef.current?.("ready");
           if (targetVisible) burstStart = performance.now();
         }

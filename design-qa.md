@@ -317,3 +317,23 @@ Design mode: preserve and modernize. Existing navy/gold identity, English copy, 
 - Physical Android/iPhone tracking and performance remain pending. Build/automated test results are recorded in the release handoff.
 
 - Release gate: 65 application tests and 4 Sites tests PASS; production build PASS with pre-existing large-chunk warning. Screenshot docs/images/scan-multi-reference-landscape.jpg uses a synthetic camera and injected pose for UI verification.
+
+## John Adams Scan — 2026-09-06
+
+- PASS: 390×844 and 844×390 John result/profile/dialogue/timeline journey; real supplied FBX and right-hand-open animation.
+- PASS: both Massacre references detected with real MindAR in synthetic video; 685×913 Hinderaker / 302×466 Zobel map to indices 0 / 1.
+- PASS: injected-pose UI tests verify loss, reacquisition and single-target switching; these are not physical-camera pose-accuracy tests.
+- PASS: real animation changes bones, continues past two full 3.77-second cycles and disposes cleanly.
+- PASS: all five HeyGen MP3 files decode; native Audio plays the selected answer and stops when navigating away.
+- PASS: 68 application tests, 4 Sites tests; production build. Existing large-JS-chunk warnings remain.
+- Visual correction: separate model/back button/interpretation label rows on phones. Captures use a simulated camera, not real device footage.
+- Still required: Android Chrome and iPhone Safari HTTPS physical-book checks, lighting/glare/distance, audio output and real-device performance. The Zobel reference is low resolution; detection is not guaranteed in every condition.
+- This change is local until separately committed/deployed.
+
+## 2026-09-07 — John Adams Library and extension handoff
+
+- PASS: John dossier uses a distinct generated interpretation in the established candlelit navy portrait style; desktop screenshot visually inspected.
+- PASS: 1440×1000, 390×844 and 844×390 browser-emulated layouts have no horizontal document overflow; all dossier images load; no console/runtime errors.
+- PASS: 68 application tests, production build and 4 Sites packaging tests.
+- README and beginner handoff now link to docs/EXTENDING.zh-CN.md for reference-image compilation, model/animation integration, voice mapping and Library graph extensions.
+- Physical Android/iPhone tracking remains a separate, unverified device check.

@@ -38,6 +38,15 @@ export const REVOLUTION_PEOPLE = Object.freeze([
     relation: "Opposed Governor Hutchinson’s enforcement of imperial policy and worked alongside merchant leaders such as John Hancock.",
   },
   {
+    id: "john-adams", name: "John Adams", lifespan: "1735–1826",
+    role: "Lawyer and Massachusetts Patriot", side: "Patriot", status: "Legal perspective indexed",
+    summary: "A lawyer who defended British soldiers after the Boston Massacre, separating opposition to imperial policy from the right to a fair trial.",
+    goal: "Insist that evidence and legal reasoning, rather than public anger, determine guilt.",
+    tension: "Defending unpopular soldiers exposed the tension between political allegiance and professional responsibility. Legal representation did not mean support for British policy.",
+    eventIds: ["massacre"], evidenceIds: ["adams-defense"],
+    relation: "Compare his courtroom perspective with Samuel Adams's public organizing. Both opposed imperial policies, but their roles in the aftermath of the Massacre were different.",
+  },
+  {
     id: "thomas-hutchinson",
     name: "Thomas Hutchinson",
     lifespan: "1711-1780",
@@ -82,6 +91,15 @@ export const REVOLUTION_PEOPLE = Object.freeze([
 ]);
 
 export const REVOLUTION_EVIDENCE = Object.freeze([
+  {
+    id: "adams-defense", title: "John Adams's Defense Argument", type: "document", date: "December 3–4, 1770",
+    sourceType: "Defense argument · archival transcription", eventId: "massacre", personIds: ["john-adams"],
+    summary: "An archival transcription of Adams's argument for the soldiers, preserved in the Adams Papers and published by Founders Online.",
+    shows: "The defense weighed testimony, provocation and each defendant's actions rather than treating the soldiers as a single political symbol.",
+    limitation: "This is an advocate's argument, not a neutral account of the shooting or the complete trial record. Compare it with witness testimony and other contemporary sources.",
+    claim: "Legal responsibility requires examining evidence about individuals, not simply assigning guilt by political allegiance.",
+    sourceUrl: "https://founders.archives.gov/documents/Adams/05-03-02-0001-0004-0016",
+  },
   {
     id: "tea-chest",
     title: "East India Company Tea Chest",

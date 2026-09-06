@@ -17,6 +17,13 @@ import {
   Waveform,
   WarningCircle,
 } from "@phosphor-icons/react";
+import { getScanCharacter } from "./scanCharacters.js";
+import { JOHN_ADAMS_STORY } from "./johnAdamsData.js";
+import johnIntroduction from "./assets/voice/john-adams-introduction.mp3";
+import johnIdentity from "./assets/voice/john-adams-identity.mp3";
+import johnMotive from "./assets/voice/john-adams-motive.mp3";
+import johnAlliance from "./assets/voice/john-adams-alliance.mp3";
+import johnStory from "./assets/voice/john-adams-story.mp3";
 import samuelAdamsPortrait from "./assets/samuel-adams-ar.webp";
 import { getAnchorTargetAssets } from "./anchorTargetAssets.js";
 import stampActImage from "./assets/timeline/stamp-act-1765.webp";
@@ -31,7 +38,7 @@ import bostonTeaPartyVoice from "./assets/voice/event-boston-tea-party.wav";
 import continentalCongressVoice from "./assets/voice/event-continental-congress.wav";
 import stampActVoice from "./assets/voice/event-stamp-act.wav";
 import samuelAdamsIntroductionVoice from "./assets/voice/samuel-adams-introduction.wav";
-import { DIALOGUE_PROMPTS, SAMUEL_ADAMS, SCAN_EVENT_PRESETS, TIMELINE_EVENTS } from "./scanData.js";
+import { SCAN_EVENT_PRESETS, TIMELINE_EVENTS } from "./scanData.js";
 import { createFrameTools, createOcrScanner } from "./ocrScanner.js";
 import { OCR_STATUSES, SCAN_STAGES } from "./scanState.js";
 import { ScanArtifactProjection } from "./ScanArtifactProjection.jsx";
@@ -52,6 +59,18 @@ const DIALOGUE_VOICES = Object.freeze({
   motive: dialogueMotiveVoice,
   alliance: dialogueAllianceVoice,
 });
+
+const JOHN_VOICES = { identity: johnIdentity, motive: johnMotive, alliance: johnAlliance };
+function CharacterPortrait({ character }) {
+  const [status, setStatus] = useState("loading");
+  const [attempt, setAttempt] = useState(0);
+  if (character.id !== "john-adams") return <img src={samuelAdamsPortrait} alt="Samuel Adams · artistic historical interpretation" />;
+  return <div className="scan-character-preview">
+    <ScanArtifactProjection key={attempt} subjectId={character.id} active interactive={false} onModelStateChange={setStatus} />
+    {status !== "ready" && <div className="scan-character-preview-status" role="status">{status === "error" ? <button className="scan-secondary" onClick={() => { setStatus("loading"); setAttempt(a => a + 1); }}>Retry character</button> : "Loading John Adams…"}</div>}
+    <small>Artistic historical interpretation · gesture animation, not lip-sync</small>
+  </div>;
+}
 
 const TIMELINE_VOICES = Object.freeze({
   "stamp-act": stampActVoice,
@@ -122,6 +141,7 @@ const ANCHOR_STATUS_COPY = Object.freeze({
 
 function EventResultView({
   scanState,
+  character,
   onProfile,
   onTimeline,
   onRescan,
@@ -197,7 +217,7 @@ function EventResultView({
         className={"scan-anchor-toggle " + (pageAnchorEnabled ? "is-enabled" : "")}
         onClick={togglePageAnchor}
         disabled={!pageAnchorSupported}
-        title={pageAnchorSupported ? "Automatically match any supported book cover for this event" : "Page anchoring is available for Stamp Act and Boston Tea Party scans"}
+        title={pageAnchorSupported ? "Automatically match any supported book cover for this event" : "Page anchoring is available for Stamp Act, Boston Massacre and Boston Tea Party scans"}
       >
         <Crosshair size={18} weight="duotone" aria-hidden="true" />
         <span>
@@ -251,19 +271,19 @@ function EventResultView({
         </>
       ) : (
         <div className="scan-ar-model-stage">
-          <ScanArtifactProjection key={modelAttempt} onModelStateChange={setModelState} active={projectionActive} onActivate={() => setProjectionActive((value) => !value)} />
-          {modelState === "ready" && <span className="scan-ar-model-label"><i /> Samuel Adams · historical interpretation</span>}
+          <ScanArtifactProjection subjectId={character.id} key={`${character.id}-${modelAttempt}`} onModelStateChange={setModelState} active={projectionActive} onActivate={() => setProjectionActive((value) => !value)} />
+          {modelState === "ready" && <span className="scan-ar-model-label"><i /> {character.name} · historical interpretation</span>}
         </div>
       )}
 
       {modelState !== "ready" && (
         <aside className="scan-model-status" role="status">
-          <span>{modelState === "loading" ? "Bringing Samuel to life…" : "Character could not load"}</span>
+          <span>{modelState === "loading" ? `Bringing ${character.name} to life…` : "Character could not load"}</span>
           {modelState === "error" && <button type="button" onClick={() => { setModelState("loading"); setModelAttempt((attempt) => attempt + 1); }}>Retry character</button>}
         </aside>
       )}
 
-      <button type="button" className={"scan-ar-option scan-ar-listen " + (speaking ? "is-playing" : "")} onClick={() => onSpeak(TIMELINE_VOICES[matchedEvent.id])}>
+      <button type="button" className={"scan-ar-option scan-ar-listen " + (speaking ? "is-playing" : "")} onClick={() => onSpeak(character.id === "john-adams" ? johnStory : TIMELINE_VOICES[matchedEvent.id])}>
         <span>{speaking ? <Waveform size={21} weight="bold" /> : <SpeakerHigh size={21} weight="duotone" />}</span>
         <b>{speaking ? "Playing story…" : "Listen to story"}</b>
         <small>Hear the event</small>
@@ -275,7 +295,7 @@ function EventResultView({
       </button>
       <button type="button" className="scan-ar-option scan-ar-person" onClick={onProfile}>
         <span><UserFocus size={21} weight="duotone" /></span>
-        <b>Meet Samuel Adams</b>
+        <b>Meet {character.name}</b>
         <small>Open character profile</small>
       </button>
       <button type="button" className="scan-ar-rescan" onClick={onRescan}><Scan size={17} weight="duotone" /> Scan again</button>
@@ -311,29 +331,29 @@ function UnmatchedView({ scanState, onRetry, onTimeline }) {
   );
 }
 
-function ProfileView({ matchedEvent, onDialogue, onTimeline, onRescan, onSpeak, speaking }) {
+function ProfileView({ character, matchedEvent, onDialogue, onTimeline, onRescan, onSpeak, speaking }) {
   return (
     <section className="profile-layout" aria-labelledby="subject-name">
       <figure className="character-stage">
         <div className="subject-lock"><UserFocus size={18} weight="duotone" /> Subject acquired</div>
-        <img src={samuelAdamsPortrait} alt="Generated full-body archival portrait of Samuel Adams" />
-        <figcaption>{matchedEvent ? `Linked through ${matchedEvent.title} · ${matchedEvent.year}` : SAMUEL_ADAMS.scanContext}</figcaption>
+        <CharacterPortrait character={character} />
+        <figcaption>{matchedEvent ? `Linked through ${matchedEvent.title} · ${matchedEvent.year}` : character.scanContext}</figcaption>
       </figure>
 
       <article className="subject-card">
         <div className="subject-card-icon" aria-hidden="true"><UserFocus size={27} weight="duotone" /></div>
         <p className="scan-kicker">Historical echo detected</p>
-        <h1 id="subject-name">{SAMUEL_ADAMS.name}</h1>
-        <p className="subject-meta">{SAMUEL_ADAMS.lifespan} · {SAMUEL_ADAMS.role}</p>
-        <p className="subject-summary">{SAMUEL_ADAMS.summary}</p>
+        <h1 id="subject-name">{character.name}</h1>
+        <p className="subject-meta">{character.lifespan} · {character.role}</p>
+        <p className="subject-summary">{character.summary}</p>
         <div className="subject-actions">
           <button type="button" className="scan-primary" onClick={onDialogue}>
-            <ChatCircleDots size={20} weight="duotone" /> Talk to Samuel
+            <ChatCircleDots size={20} weight="duotone" /> Talk to {character.name.split(" ")[0]}
           </button>
           <button type="button" className="scan-secondary" onClick={onTimeline}>
             <ClockCounterClockwise size={20} weight="duotone" /> Explore timeline
           </button>
-          <button type="button" className="scan-secondary" onClick={() => onSpeak(samuelAdamsIntroductionVoice)}>
+          <button type="button" className="scan-secondary" onClick={() => onSpeak(character.id === "john-adams" ? johnIntroduction : samuelAdamsIntroductionVoice)}>
             {speaking ? <Waveform size={20} weight="bold" /> : <SpeakerHigh size={20} weight="duotone" />}
             {speaking ? "Speaking…" : "Hear introduction"}
           </button>
@@ -346,25 +366,25 @@ function ProfileView({ matchedEvent, onDialogue, onTimeline, onRescan, onSpeak, 
   );
 }
 
-function DialogueView({ selectedPromptId, onSelectPrompt, onBack, onTimeline, onSpeak, speaking }) {
-  const selectedPrompt = DIALOGUE_PROMPTS.find((prompt) => prompt.id === selectedPromptId) ?? null;
+function DialogueView({ character, selectedPromptId, onSelectPrompt, onBack, onTimeline, onSpeak, speaking }) {
+  const selectedPrompt = character.prompts.find((prompt) => prompt.id === selectedPromptId) ?? null;
 
   const askQuestion = (prompt) => {
     onSelectPrompt(prompt.id);
-    onSpeak(DIALOGUE_VOICES[prompt.id]);
+    onSpeak((character.id === "john-adams" ? JOHN_VOICES : DIALOGUE_VOICES)[prompt.id]);
   };
 
   return (
     <section className="dialogue-layout" aria-labelledby="dialogue-title">
-      <div className="dialogue-character">
+      <div className={`dialogue-character ${character.id === "john-adams" ? "has-character-model" : ""}`}>
         <BackButton onClick={onBack} />
-        <img src={samuelAdamsPortrait} alt="Samuel Adams archival projection" />
+        <CharacterPortrait character={character} />
         <div className="voice-ready"><span /> HeyGen character voice ready</div>
       </div>
 
       <div className="dialogue-panel">
-        <p className="scan-kicker">Subject acquired · 1773</p>
-        <h1 id="dialogue-title">Speak with Samuel Adams</h1>
+        <p className="scan-kicker">{character.scanContext}</p>
+        <h1 id="dialogue-title">Speak with {character.name}</h1>
         <p className="dialogue-help">Tap a question to hear the character answer through your device speaker.</p>
 
         <div className={`transcript-card ${selectedPrompt ? "has-answer" : ""}`} aria-live="polite">
@@ -372,13 +392,13 @@ function DialogueView({ selectedPromptId, onSelectPrompt, onBack, onTimeline, on
             {speaking ? <Waveform size={24} weight="bold" /> : <ChatCircleDots size={24} weight="duotone" />}
           </div>
           <div>
-            <span>{speaking ? "Samuel is speaking" : selectedPrompt ? selectedPrompt.label : "Choose a question"}</span>
+            <span>{speaking ? `${character.name.split(" ")[0]} is speaking` : selectedPrompt ? selectedPrompt.label : "Choose a question"}</span>
             <p>{selectedPrompt?.answer ?? "A short transcript will appear here while the spoken response plays."}</p>
           </div>
         </div>
 
         <div className="question-grid">
-          {DIALOGUE_PROMPTS.map((prompt) => (
+          {character.prompts.map((prompt) => (
             <button
               type="button"
               key={prompt.id}
@@ -399,7 +419,7 @@ function DialogueView({ selectedPromptId, onSelectPrompt, onBack, onTimeline, on
   );
 }
 
-function TimelineView({ selectedEventId, onSelectEvent, onBack, onSpeak, speaking }) {
+function TimelineView({ character, selectedEventId, onSelectEvent, onBack, onSpeak, speaking }) {
   const selectedEvent = TIMELINE_EVENTS.find((event) => event.id === selectedEventId) ?? TIMELINE_EVENTS[2];
   const carouselRef = useRef(null);
   const scrollFrameRef = useRef(null);
@@ -452,8 +472,8 @@ function TimelineView({ selectedEventId, onSelectEvent, onBack, onSpeak, speakin
           <h1 id="timeline-title">Connect the causes</h1>
         </div>
         <div className="timeline-subject-chip">
-          <img src={samuelAdamsPortrait} alt="" aria-hidden="true" />
-          <span>Samuel Adams<br /><small>Context guide</small></span>
+          {character.id === "john-adams" ? <UserFocus size={28} /> : <img src={samuelAdamsPortrait} alt="" aria-hidden="true" />}
+          <span>{character.name}<br /><small>Context guide</small></span>
         </div>
       </div>
 
@@ -497,9 +517,9 @@ function TimelineView({ selectedEventId, onSelectEvent, onBack, onSpeak, speakin
         <div className="timeline-date"><strong>{selectedEvent.year}</strong><span>{selectedEvent.date}</span></div>
         <div>
           <h2>{selectedEvent.title}</h2>
-          <p>{selectedEvent.detail}</p>
+          <p>{character.id === "john-adams" && selectedEvent.id === "massacre" ? JOHN_ADAMS_STORY : selectedEvent.detail}</p>
         </div>
-        <button type="button" className="scan-secondary" onClick={() => onSpeak(TIMELINE_VOICES[selectedEvent.id])}>
+        <button type="button" className="scan-secondary" onClick={() => onSpeak(character.id === "john-adams" && selectedEvent.id === "massacre" ? johnStory : TIMELINE_VOICES[selectedEvent.id])}>
           {speaking ? <Waveform size={20} weight="bold" /> : <SpeakerHigh size={20} weight="duotone" />}
           {speaking ? "Speaking…" : "Hear event"}
         </button>
@@ -522,6 +542,13 @@ export function ScanExperience({
   const captureFrameRef = useRef(null);
   const audioRef = useRef(null);
   const [speaking, setSpeaking] = useState(false);
+  const [audioError, setAudioError] = useState(false);
+  const [pageVisible, setPageVisible] = useState(() => document.visibilityState !== "hidden");
+  useEffect(() => {
+    const update = () => setPageVisible(document.visibilityState !== "hidden");
+    document.addEventListener("visibilitychange", update);
+    return () => document.removeEventListener("visibilitychange", update);
+  }, []);
 
   useEffect(() => {
     if (scanState.stage !== SCAN_STAGES.SCANNING || experience.mode !== "camera" || !videoElement) return undefined;
@@ -564,9 +591,10 @@ export function ScanExperience({
     audio.pause();
     audio.src = "";
     setSpeaking(false);
-  }, [scanState.stage]);
+  }, [scanState.stage, scanState.matchedEventId, pageVisible]);
 
   const speak = (source) => {
+    setAudioError(false);
     const previousAudio = audioRef.current;
     audioRef.current = null;
     if (previousAudio) {
@@ -585,16 +613,21 @@ export function ScanExperience({
       if (audioRef.current === audio) setSpeaking(false);
     };
     audio.onerror = () => {
-      if (audioRef.current === audio) setSpeaking(false);
+      if (audioRef.current === audio) { setSpeaking(false); setAudioError(true); }
     };
     audioRef.current = audio;
     audio.play().catch(() => {
-      if (audioRef.current === audio) setSpeaking(false);
+      if (audioRef.current === audio) { setSpeaking(false); setAudioError(true); }
     });
   };
 
+  const character = getScanCharacter(scanState.matchedEventId);
   const hasCameraError = ["denied", "unsupported", "error"].includes(experience.mode);
   const matchedEvent = TIMELINE_EVENTS.find((event) => event.id === scanState.matchedEventId) ?? null;
+
+  const audioNotice = audioError ? <p className="scan-audio-error" role="alert">Audio could not play. Tap the audio option again to retry.</p> : null;
+
+  if (!pageVisible) return null;
 
   if (hasCameraError) {
     return (
@@ -610,20 +643,22 @@ export function ScanExperience({
 
   if (scanState.stage === SCAN_STAGES.PROFILE) {
     return (
-      <ProfileView
+      <>{audioNotice}<ProfileView
+        character={character}
         matchedEvent={matchedEvent}
         onDialogue={() => dispatchScan({ type: "OPEN_DIALOGUE" })}
         onTimeline={() => dispatchScan({ type: "OPEN_TIMELINE" })}
         onRescan={onRetryCamera}
         onSpeak={speak}
         speaking={speaking}
-      />
+      /></>
     );
   }
 
   if (scanState.stage === SCAN_STAGES.RESULT) {
     return (
-      <EventResultView
+      <>{audioNotice}<EventResultView
+        character={character}
         scanState={scanState}
         onProfile={() => dispatchScan({ type: "OPEN_PROFILE" })}
         onTimeline={() => dispatchScan({ type: "OPEN_TIMELINE" })}
@@ -632,7 +667,7 @@ export function ScanExperience({
         speaking={speaking}
         videoElement={videoElement}
         imageAnchorTrackerFactory={imageAnchorTrackerFactory}
-      />
+      /></>
     );
   }
 
@@ -648,26 +683,28 @@ export function ScanExperience({
 
   if (scanState.stage === SCAN_STAGES.DIALOGUE) {
     return (
-      <DialogueView
+      <>{audioNotice}<DialogueView
+        character={character}
         selectedPromptId={scanState.selectedPromptId}
         onSelectPrompt={(promptId) => dispatchScan({ type: "SELECT_PROMPT", promptId })}
         onBack={() => dispatchScan({ type: "OPEN_PROFILE" })}
         onTimeline={() => dispatchScan({ type: "OPEN_TIMELINE" })}
         onSpeak={speak}
         speaking={speaking}
-      />
+      /></>
     );
   }
 
   if (scanState.stage === SCAN_STAGES.TIMELINE) {
     return (
-      <TimelineView
+      <>{audioNotice}<TimelineView
+        character={character}
         selectedEventId={scanState.selectedEventId}
         onSelectEvent={(eventId) => dispatchScan({ type: "SELECT_EVENT", eventId })}
         onBack={() => dispatchScan({ type: "OPEN_PROFILE" })}
         onSpeak={speak}
         speaking={speaking}
-      />
+      /></>
     );
   }
 
