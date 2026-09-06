@@ -9,10 +9,14 @@ import "../src/styles.css";
 import "../src/archive-refresh.css";
 import "../src/interface-theme.css";
 import bostonTeaPartyAnchorImage from "../src/assets/tracking/boston-tea-party-cover.png";
+import { getAnchorTargetAssets } from "../src/anchorTargetAssets.js";
 
 const records = new Map();
 const storage = { getItem: key => records.get(key) ?? null, setItem: (key, value) => records.set(key, value) };
 const fixtureParams = new URLSearchParams(window.location.search);
+const fixtureEvent = fixtureParams.get("event") ?? "tea-party";
+const fixtureTarget = Math.min(1, Math.max(0, Number(fixtureParams.get("target") ?? 0)));
+const fixtureReference = getAnchorTargetAssets(fixtureEvent)?.images[fixtureTarget]?.url ?? bostonTeaPartyAnchorImage;
 const directResult = fixtureParams.get("visual") === "result";
 let outcome = fixtureParams.get("outcome") ?? "hold";
 let releaseReading;
@@ -63,7 +67,7 @@ async function syntheticStream() {
 function controllerFactory(options) {
   if (directResult) {
     const state = { mode: "camera", code: null, message: "" };
-    options.videoElement.poster = bostonTeaPartyAnchorImage;
+    options.videoElement.poster = fixtureReference;
     options.videoElement.dataset.fixtureCamera = "reference-image";
     Object.defineProperties(options.videoElement, {
       videoWidth: { configurable: true, value: 1920 },
@@ -105,21 +109,23 @@ function fixtureAnchorTrackerFactory({ onMatrix }) {
     0, 0, (far + near) / (near - far), -1,
     0, 0, (2 * far * near) / (near - far), 0,
   ];
-  const timer = window.setTimeout(() => {
+  const sendPose = (index = fixtureTarget) => {
     onMatrix([
       1, 0, 0, 0,
       0, 0.6216, -0.7833, 0,
       0, 0.7833, 0.6216, 0,
       -0.5, -0.3978, -1.7487, 1,
-    ]);
-  }, 220);
+    ], { targetIndex: index, dimensions: [1, index ? 1.28 : 1.5] });
+  };
+  window.fixtureAnchorPose = (index) => index === null ? onMatrix(null, { targetIndex: Number(document.querySelector(".scan-image-anchor-layer")?.dataset.targetIndex ?? fixtureTarget) }) : sendPose(index);
+  const timer = window.setTimeout(sendPose, 220);
 
   return Promise.resolve({
     inputWidth: 1920,
     inputHeight: 1080,
     dimensions: [1, 1.28],
     projectionMatrix,
-    stop() { window.clearTimeout(timer); },
+    stop() { window.clearTimeout(timer); delete window.fixtureAnchorPose; },
   });
 }
 async function recognizerFactory(onProgress) {
@@ -172,8 +178,8 @@ function Fixture() {
         ...initialScanState,
         stage: SCAN_STAGES.RESULT,
         ocrStatus: OCR_STATUSES.MATCHED,
-        selectedEventId: "tea-party",
-        matchedEventId: "tea-party",
+        selectedEventId: fixtureEvent,
+        matchedEventId: fixtureEvent,
         matchConfidence: 94,
         ocrConfidence: 94,
         recognizedTextExcerpt: "The Boston Tea Party · December 16, 1773",

@@ -126,7 +126,7 @@ Challenges 和 Progress 不属于美国革命单元。美国革命只是第一�
 
 匹配允许少量 OCR 错字，但必须命中标题或事件专属短语，仅有年份不能触发匹配。三轮未匹配时显示明确的无匹配状态；OCR 加载或执行失败时显示单独的错误与重试入口。
 
-识别成功后会继续保留实时摄像头，并在透明 Three.js 场景中生成带短暂粒子揭示效果的 Samuel Adams 人物模型。周围悬浮事件资料、故事语音、时间线、Samuel Adams 人物页和再次扫描入口。默认仍使用稳定的屏幕空间投影，不改变原有流程。只有匹配 Boston Tea Party 时才可手动打开 `Page anchor` 测试开关：它会按需加载本地图片追踪模块，并以 `src/assets/tracking/boston-tea-party-cover.png` 为参考目标，让人物的位置和朝向跟随封面；封面离开画面时模型暂时隐藏，其他操作仍可使用。该能力是当前页面会话中的图片目标姿态，不是平面检测、持久空间锚点或 WebXR Anchors。摄像头画面和识别文本不会上传、持久化或计入学习进度。
+识别成功后会继续保留实时摄像头，并在透明 Three.js 场景中生成带短暂粒子揭示效果的 Samuel Adams 人物模型。周围悬浮事件资料、故事语音、时间线、Samuel Adams 人物页和再次扫描入口。默认仍使用稳定的屏幕空间投影，不改变原有流程。匹配 Stamp Act 或 Boston Tea Party 后均可手动打开 `Page anchor` 测试开关：它会按需加载本地图片追踪模块，自动匹配该事件的两张预设参考图之一（配置见 `src/anchorTargets.js`），让人物的位置和朝向跟随封面；封面离开画面时模型暂时隐藏，其他操作仍可使用。该能力是当前页面会话中的图片目标姿态，不是平面检测、持久空间锚点或 WebXR Anchors。摄像头画面和识别文本不会上传、持久化或计入学习进度。
 
 ### 人物互动与语音
 
@@ -265,13 +265,13 @@ tests/
 5. 一个扫描周期复用一个 Worker，任务不并发。
 6. 匹配成功即显示事件结果；否则约 1.2 秒后继续，最多三轮。
 7. 退出、隐藏页面、重试、得到结果或卸载组件时取消待处理任务、丢弃过期结果并终止 Worker；退出体验时释放媒体轨道。
-8. 命中 Boston Tea Party 后，`Page anchor` 默认关闭；用户打开后才动态加载图片追踪、识别参考封面并更新 Three.js 姿态。关闭开关或离开结果页会立即停止追踪并释放渲染资源。
+8. 命中 Stamp Act 或 Boston Tea Party 后，`Page anchor` 默认关闭；用户打开后才动态加载图片追踪、识别参考封面并更新 Three.js 姿态。关闭开关或离开结果页会立即停止追踪并释放渲染资源。
 
 Scan 状态包括 `idle / scanning / result / unmatched / profile / dialogue / timeline`。OCR 加载进度、稳定检测与错误独立记录。得到匹配结果后可以保留相机背景，不继续运行 OCR。
 
 点击 `Exit scan` 返回 Library，并关闭相机、取消识别；即使先退出、后授权，延迟返回的媒体轨道也会被释放。页面隐藏后暂停相机，回来可以点击 `Resume` 继续。
 
-本地 `/tests/scan-camera-browser-fixture.html` 用模拟相机画面和可控制的识别结果验证手机布局、成功、无匹配、识别异常及权限拒绝。`QA` 中可切换真实 OCR 来检查完整识别流程；`?visual=result&anchor=on` 仅供开发验收，会用参考封面作为明确标注的模拟相机背景并注入稳定姿态。测试页使用内存存档，不修改真实学习进度，也不加入生产入口。若替换参考封面，运行 `./scripts/project.ps1 install` 确保依赖完整，再执行 `.\scripts\project.ps1 compile:tracking` 重新生成 `.mind` 文件并重新构建。
+本地 `/tests/scan-camera-browser-fixture.html` 用模拟相机画面和可控制的识别结果验证手机布局、成功、无匹配、识别异常及权限拒绝。`QA` 中可切换真实 OCR 来检查完整识别流程；`?visual=result&anchor=on` 仅供开发验收，会用参考封面作为明确标注的模拟相机背景并注入稳定姿态。测试页使用内存存档，不修改真实学习进度，也不加入生产入口。若替换参考封面，运行 `./scripts/project.ps1 install` 确保依赖完整，再执行 `.\scripts\project.ps1 compile:tracking --event stamp-act` 或 `--event tea-party` 重新生成对应集合，并执行 `node scripts/create-anchor-thumbnails.mjs` 更新缩略图，最后重新构建。
 
 ## 七、扩展新的历史内容
 
@@ -349,7 +349,7 @@ Vercel 发布的是网站构建结果，README 属于项目源文档，不会自
 ## 十、已知边界
 
 - 只识别已配置的印刷英文事件，不支持手写、中文、人脸或任意实物识别。
-- Boston Tea Party 提供默认关闭、会话级的参考封面图片追踪；它不是任意实物识别，也不包含平面命中测试、持久 WebXR 空间锚点或跨页面恢复。
+- Stamp Act 和 Boston Tea Party 提供默认关闭、会话级的参考封面图片追踪；它不是任意实物识别，也不包含平面命中测试、持久 WebXR 空间锚点或跨页面恢复。
 - 3D 场景和生成式历史图片属于原型素材，不是历史现场的精确复原。
 - 对话为预设问题与音频，不是实时大模型语音交谈。
 - 只有美国革命单元完整可用，其余时代仍是预览。
@@ -375,10 +375,24 @@ Vercel 发布的是网站构建结果，README 属于项目源文档，不会自
 
 港口增加了长条木板、钉头与边缘护木、木箱接合细节、蜡烛灯笼、船舶弧形栏杆和绳梯索具、仓库窗框及岸墙。水面使用本地生成的法线贴图和天空盒环境反射，保留分层低雾。所有新增内容仅为环境建模，交互线索仍为原来的四个。
 
-`src/harborVisuals.js` 集中管理环境细节、程序纹理和静态合批；动态水面、透明物体及交互判定代理不参与静态合批。环境与水面新增测试已纳入默认测试入口，当前为 60 项应用测试和 4 项 Sites 测试。手机实际帧率仍需真机验证。
+`src/harborVisuals.js` 集中管理环境细节、程序纹理和静态合批；动态水面、透明物体及交互判定代理不参与静态合批。环境与水面新增测试已纳入默认测试入口，当前为 65 项应用测试和 4 项 Sites 测试。手机实际帧率仍需真机验证。
 
 ### 移动端水面
 
 `src/harborWater.js` 管理水面：两层错向细波纹、缓慢起伏、天空盒反射及简化月光/岸灯高光均在单次不透明绘制中完成。远处波纹逐渐减弱，不使用实时镜面反射、折射或额外后处理；不会准确倒映船舶和建筑。
 
 触屏或可检测到的低内存设备使用 24×20 网格（525 个顶点），像素倍率上限为 1.25；其他设备为 36×28 网格，上限 1.6。动画只更新时间参数，不再逐帧上传顶点或重算法线。减少动态效果偏好会冻结动画。四个交互线索保持不变，设备实际帧率仍需真机验收。
+
+## 多参考图锚定
+
+Stamp Act：The Stamp Act and the American Revolution（Ken Shumate）、The Stamp Act of 1765（Michael Burgan）。Boston Tea Party：原有 Perspectives 封面、新增 Hourly History 封面。四张图均显示同一个 Samuel Adams 模型及循环手势，不进行人脸识别。
+
+操作：Scan 识别封面标题 → 匹配对应事件 → 打开 Page anchor → 保持任意一张该事件的完整封面可见。无需选择具体图片。目标丢失后隐藏模型，重新发现或切换参考图后恢复；没有预设参考图的事件仍用默认投影。
+
+开发配置在 src/anchorTargets.js，图片数组顺序必须与编译索引一致。从项目根目录分别执行：
+
+    .\scripts\project.ps1 compile:tracking --event stamp-act
+    .\scripts\project.ps1 compile:tracking --event tea-party
+    node scripts/create-anchor-thumbnails.mjs
+
+无参数的 compile:tracking 仅保留原始单封面兼容流程，不会更新新集合。原始 PNG 保留；界面提示使用小缩略图，只有打开锚定才下载约 1.6 MB 的当前事件 .mind 文件。编译在开发电脑完成，不在用户手机实时编译。参考图片为用户提供的原型素材，正式作品集传播或商业使用前请核实授权。

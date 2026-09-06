@@ -15,7 +15,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ["react", "react-dom/client"],
+    include: ["react", "react-dom/client", "mind-ar > @tensorflow/tfjs", "mind-ar > @tensorflow/tfjs-backend-webgl", "mind-ar > @tensorflow/tfjs-core", "mind-ar > ml-matrix", "mind-ar > @msgpack/msgpack", "mind-ar > mathjs", "mind-ar > tinyqueue"],
     exclude: ["mind-ar"],
   },
   server: {

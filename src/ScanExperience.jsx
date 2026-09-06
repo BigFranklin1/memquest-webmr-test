@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowsLeftRight,
@@ -18,7 +18,7 @@ import {
   WarningCircle,
 } from "@phosphor-icons/react";
 import samuelAdamsPortrait from "./assets/samuel-adams-ar.webp";
-import bostonTeaPartyAnchorImage from "./assets/tracking/boston-tea-party-cover.png";
+import { getAnchorTargetAssets } from "./anchorTargetAssets.js";
 import stampActImage from "./assets/timeline/stamp-act-1765.webp";
 import bostonMassacreImage from "./assets/timeline/boston-massacre-1770.webp";
 import bostonTeaPartyImage from "./assets/timeline/boston-tea-party-1773.webp";
@@ -36,7 +36,6 @@ import { createFrameTools, createOcrScanner } from "./ocrScanner.js";
 import { OCR_STATUSES, SCAN_STAGES } from "./scanState.js";
 import { ScanArtifactProjection } from "./ScanArtifactProjection.jsx";
 import {
-  BOSTON_TEA_PARTY_ANCHOR_EVENT_ID,
   ScanImageAnchorProjection,
 } from "./ScanImageAnchorProjection.jsx";
 import "./scan-capture.css";
@@ -140,7 +139,8 @@ function EventResultView({
   const [anchorTracking, setAnchorTracking] = useState({ state: "off", message: "" });
   const [anchorPoint, setAnchorPoint] = useState(null);
   const resultRef = useRef(null);
-  const pageAnchorSupported = matchedEvent.id === BOSTON_TEA_PARTY_ANCHOR_EVENT_ID;
+  const targetSet = useMemo(() => getAnchorTargetAssets(matchedEvent.id), [matchedEvent.id]);
+  const pageAnchorSupported = Boolean(targetSet);
   const anchorFound = pageAnchorEnabled && anchorTracking.state === "found";
 
   useEffect(() => {
@@ -197,12 +197,12 @@ function EventResultView({
         className={"scan-anchor-toggle " + (pageAnchorEnabled ? "is-enabled" : "")}
         onClick={togglePageAnchor}
         disabled={!pageAnchorSupported}
-        title={pageAnchorSupported ? "Use the supplied book cover as a spatial reference" : "Page anchoring is available for Boston Tea Party scans"}
+        title={pageAnchorSupported ? "Automatically match any supported book cover for this event" : "Page anchoring is available for Stamp Act and Boston Tea Party scans"}
       >
         <Crosshair size={18} weight="duotone" aria-hidden="true" />
         <span>
           <strong>Page anchor</strong>
-          <small>{pageAnchorSupported ? ANCHOR_STATUS_COPY[anchorTracking.state] : "Boston Tea Party only"}</small>
+          <small>{pageAnchorSupported ? ANCHOR_STATUS_COPY[anchorTracking.state] : "No reference images yet"}</small>
         </span>
         <i aria-hidden="true"><b /></i>
       </button>
@@ -228,6 +228,7 @@ function EventResultView({
             key={modelAttempt}
             onModelStateChange={setModelState}
             enabled
+            targetSet={targetSet}
             videoElement={videoElement}
             trackerFactory={imageAnchorTrackerFactory}
             onTrackingChange={(status) => {
@@ -239,11 +240,11 @@ function EventResultView({
           {anchorFound && <span className="scan-anchor-pin-label"><i /> Page locked · move around the cover</span>}
           {!anchorFound && (
             <aside className={"scan-anchor-guide is-" + anchorTracking.state} role="status">
-              <img src={bostonTeaPartyAnchorImage} alt="Boston Tea Party book cover used as the page anchor target" />
+              <div className="scan-anchor-target-thumbnails">{targetSet.images.map(image => <img key={image.id} src={image.thumbnailUrl} alt={image.label} />)}</div>
               <span>
-                <small>REFERENCE IMAGE</small>
-                <strong>{anchorTracking.state === "loading" ? "Preparing page tracking" : anchorTracking.state === "error" ? "Page tracking unavailable" : "Aim at this book cover"}</strong>
-                <p>{anchorTracking.state === "error" ? anchorTracking.message || "Switch Page anchor off to keep using the screen projection." : "Keep the full cover visible and hold the phone steady."}</p>
+                <small>{targetSet.images.length} REFERENCE IMAGES · AUTO MATCH</small>
+                <strong>{anchorTracking.state === "loading" ? "Preparing page tracking" : anchorTracking.state === "error" ? "Page tracking unavailable" : "Aim at either book cover"}</strong>
+                <p>{anchorTracking.state === "error" ? anchorTracking.message || "Switch Page anchor off to keep using the screen projection." : "No selection needed. Keep one full cover visible and hold steady."}</p>
               </span>
             </aside>
           )}

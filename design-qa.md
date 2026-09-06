@@ -307,3 +307,13 @@ Design mode: preserve and modernize. Existing navy/gold identity, English copy, 
 - Browser: inspected 1200×800 and 844×390 captures, including touch/DPR 3 emulation. Confirmed mobile DPR 1.25 and 525 vertices, no horizontal overflow and no console/shader/runtime errors. Same desktop initial-view draw calls approximately 295 before / 250 after (not an FPS measurement). Side-view mobile counter is not directly comparable due to frustum changes.
 - 60 application tests + 4 Sites tests PASS. Production build PASS (existing large chunk warning retained). All four clue selections and detail expansions at 1200×800, 844×390 and 390×844 PASS; drag does not select; cards stay within viewport. Original clue set unchanged.
 - Screenshot: docs/images/harbor-mobile-water.jpg is a desktop-rendered mobile emulation, not physical-device evidence. Android/iPhone heat, frame timing and immersive-XR remain unverified. Local only; no deployment in this task.
+
+## Event-specific multi-reference anchors / 2026-09-06
+
+- Four references: Stamp Act Shumate/Burgan, Tea Party Perspectives/Hourly History. Original reference and FBX unchanged. Event-specific bundles, no manual image selection, maxTrack 1, per-target dimensions and replayed particle reveal. Unknown events keep screen mode; late/aborted callbacks ignored.
+- Five added unit tests cover compiled ordering/dimensions, event registry, routing/loss/switch, single-target limit, cancellation, failure and disposal. Real MindAR browser matching of four synthetic camera inputs returned expected target indices 0/1 in each set; this is algorithm verification, not physical-device accuracy evidence.
+- 390×844 and 844×390, both events: default-off screen mode, target 1 found, lost-target guide with two thumbnails, switch to target 0 and toggle-off cleanup PASS. Real FBX loads; UI poses injected for this layout test. No console/runtime errors in scoped checks. Existing FBX four-weight warning remains.
+- Vite now prebundles tracking dependencies for local CommonJS compatibility. Small derived thumbnails avoid downloading full reference PNGs merely to show hints. No new historical content, microphones or uploaded camera data.
+- Physical Android/iPhone tracking and performance remain pending. Build/automated test results are recorded in the release handoff.
+
+- Release gate: 65 application tests and 4 Sites tests PASS; production build PASS with pre-existing large-chunk warning. Screenshot docs/images/scan-multi-reference-landscape.jpg uses a synthetic camera and injected pose for UI verification.

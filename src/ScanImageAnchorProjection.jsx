@@ -1,12 +1,12 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
-import bostonTeaPartyTarget from "./assets/tracking/boston-tea-party-cover.mind?url";
+import { createMindArTracker } from "./imageAnchorTracker.js";
 import { loadSamuelAdamsProjectionModel } from "./SamuelAdamsProjectionModel";
 
 const TRACKING_RENDER_LIMIT = 960;
-const TARGET_INDEX = 0;
 
-export const BOSTON_TEA_PARTY_ANCHOR_EVENT_ID = "tea-party";
+
+
 
 export function calculateCoverLayout(inputWidth, inputHeight, viewportWidth, viewportHeight) {
   const scale = Math.max(viewportWidth / inputWidth, viewportHeight / inputHeight);
@@ -196,48 +196,9 @@ function createAnchoredArtifact() {
   };
 }
 
-async function createMindArTracker({ videoElement, onMatrix }) {
-  const { Controller } = await import("mind-ar/src/image-target/controller.js");
-  const inputWidth = videoElement.videoWidth;
-  const inputHeight = videoElement.videoHeight;
-  let controller = null;
-
-  try {
-    controller = new Controller({
-      inputWidth,
-      inputHeight,
-      maxTrack: 1,
-      warmupTolerance: 3,
-      missTolerance: 8,
-      filterMinCF: 0.0007,
-      filterBeta: 850,
-      onUpdate: (update) => {
-        if (update.type === "updateMatrix" && update.targetIndex === TARGET_INDEX) onMatrix(update.worldMatrix);
-      },
-    });
-    const response = await fetch(bostonTeaPartyTarget);
-    if (!response.ok) throw new Error("The page anchor target could not be loaded.");
-    const { dimensions } = controller.addImageTargetsFromBuffer(await response.arrayBuffer());
-    controller.dummyRun(videoElement);
-    controller.processVideo(videoElement);
-
-    return {
-      inputWidth,
-      inputHeight,
-      dimensions: dimensions[TARGET_INDEX],
-      projectionMatrix: controller.getProjectionMatrix(),
-      stop() {
-        controller.dispose();
-      },
-    };
-  } catch (error) {
-    controller?.dispose();
-    throw error;
-  }
-}
-
 export function ScanImageAnchorProjection({
   enabled,
+  targetSet,
   videoElement,
   onTrackingChange,
   onAnchorPose,
@@ -254,7 +215,7 @@ export function ScanImageAnchorProjection({
 
   useEffect(() => {
     const mount = mountRef.current;
-    if (!enabled || !mount || !videoElement) return undefined;
+    if (!enabled || !targetSet || !mount || !videoElement) return undefined;
 
     let cancelled = false;
     let tracker = null;
@@ -265,7 +226,8 @@ export function ScanImageAnchorProjection({
     let hasEverFound = false;
     let burstStart = 0;
     let postMatrix = null;
-    let pendingWorldMatrix = null;
+    let pendingPose = null;
+    let activeTargetIndex = null;
     const previousWidth = videoElement.getAttribute("width");
     const previousHeight = videoElement.getAttribute("height");
     const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
@@ -362,6 +324,35 @@ export function ScanImageAnchorProjection({
     };
     animationFrame = window.requestAnimationFrame(render);
 
+    const applyPose = ({ worldMatrix, targetIndex = 0, dimensions }) => {
+      if (!worldMatrix) {
+        if (activeTargetIndex !== null && activeTargetIndex !== targetIndex) return;
+        anchorGroup.visible = false;
+        targetVisible = false;
+        activeTargetIndex = null;
+        reportStatus(hasEverFound ? "lost" : "searching");
+        return;
+      }
+      const targetDimensions = dimensions ?? tracker.dimensionsList?.[targetIndex] ?? tracker.dimensions;
+      if (!targetSet.images[targetIndex] || !targetDimensions) return;
+      const [width, height] = targetDimensions;
+      if (!(width > 0 && height > 0)) return;
+      if (activeTargetIndex !== targetIndex || !postMatrix) {
+        postMatrix = new THREE.Matrix4().compose(new THREE.Vector3(width / 2, height / 2, 0),
+          new THREE.Quaternion(), new THREE.Vector3(width, width, width));
+      }
+      if (!targetVisible || activeTargetIndex !== targetIndex) {
+        burstStart = performance.now();
+        reportStatus("found", targetSet.images[targetIndex].label);
+      }
+      activeTargetIndex = targetIndex;
+      mount.dataset.targetIndex = String(targetIndex);
+      targetVisible = true;
+      hasEverFound = true;
+      anchorGroup.visible = true;
+      anchorGroup.matrix.fromArray(worldMatrix).multiply(postMatrix);
+    };
+
     const start = async () => {
       try {
         reportStatus("loading");
@@ -372,26 +363,13 @@ export function ScanImageAnchorProjection({
 
         tracker = await trackerFactory({
           videoElement,
-          targetUrl: bostonTeaPartyTarget,
-          onMatrix: (worldMatrix) => {
+          targetUrl: targetSet.targetUrl,
+          targetCount: targetSet.images.length,
+          signal: loadController.signal,
+          onMatrix: (worldMatrix, info = {}) => {
             if (cancelled) return;
-            if (!worldMatrix) {
-              pendingWorldMatrix = null;
-              anchorGroup.visible = false;
-              targetVisible = false;
-              reportStatus(hasEverFound ? "lost" : "searching");
-              return;
-            }
-            pendingWorldMatrix = worldMatrix;
-            if (!postMatrix) return;
-            if (!targetVisible) {
-              targetVisible = true;
-              hasEverFound = true;
-              burstStart = performance.now();
-              reportStatus("found");
-            }
-            anchorGroup.visible = true;
-            anchorGroup.matrix.fromArray(worldMatrix).multiply(postMatrix);
+            pendingPose = { worldMatrix, ...info };
+            if (tracker) applyPose(pendingPose);
           },
         });
         if (cancelled) {
@@ -399,15 +377,9 @@ export function ScanImageAnchorProjection({
           return;
         }
 
-        const [targetWidth, targetHeight] = tracker.dimensions;
-        postMatrix = new THREE.Matrix4().compose(
-          new THREE.Vector3(targetWidth / 2, targetHeight / 2, 0),
-          new THREE.Quaternion(),
-          new THREE.Vector3(targetWidth, targetWidth, targetWidth),
-        );
         camera.projectionMatrix.fromArray(tracker.projectionMatrix);
         camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
-        if (pendingWorldMatrix) anchorGroup.matrix.fromArray(pendingWorldMatrix).multiply(postMatrix);
+        if (pendingPose) applyPose(pendingPose);
 
         resize();
         if (!targetVisible) reportStatus("searching");
@@ -438,7 +410,7 @@ export function ScanImageAnchorProjection({
       renderer.dispose();
       renderer.domElement.remove();
     };
-  }, [enabled, trackerFactory, videoElement]);
+  }, [enabled, targetSet, trackerFactory, videoElement]);
 
   return <div ref={mountRef} className="scan-image-anchor-layer" aria-hidden="true" />;
 }

@@ -1,6 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { PNG } from "pngjs";
+import { getAnchorTargetSet } from "../src/anchorTargets.js";
 import { CompilerBase } from "mind-ar/src/image-target/compiler-base.js";
 import { buildTrackingImageList } from "mind-ar/src/image-target/image-list.js";
 import { extractTrackingFeatures } from "mind-ar/src/image-target/tracker/extract-utils.js";
@@ -35,13 +36,16 @@ class PngCompiler extends CompilerBase {
   }
 }
 
-const inputPath = resolve(process.argv[2] ?? "src/assets/tracking/boston-tea-party-cover.png");
-const outputPath = resolve(process.argv[3] ?? "src/assets/tracking/boston-tea-party-cover.mind");
-const png = PNG.sync.read(await readFile(inputPath));
+const eventMode = process.argv[2] === "--event";
+const preset = eventMode ? getAnchorTargetSet(process.argv[3]) : null;
+if (eventMode && !preset) throw new Error("Unknown anchor event");
+const inputPaths = preset ? preset.images.map(image => resolve("src/assets/tracking", image.file)) : [resolve(process.argv[2] ?? "src/assets/tracking/boston-tea-party-cover.png")];
+const outputPath = preset ? resolve("src/assets/tracking", preset.compiledFile) : resolve(process.argv[3] ?? "src/assets/tracking/boston-tea-party-cover.mind");
+const images = await Promise.all(inputPaths.map(async path => PNG.sync.read(await readFile(path))));
 const compiler = new PngCompiler();
 let lastReported = -1;
 
-await compiler.compileImageTargets([png], (progress) => {
+await compiler.compileImageTargets(images, (progress) => {
   const rounded = Math.floor(progress / 10) * 10;
   if (rounded !== lastReported) {
     lastReported = rounded;
